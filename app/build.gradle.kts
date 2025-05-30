@@ -41,7 +41,7 @@ android {
     buildFeatures {
         compose = true
     }
-
+    flavorDimensions += "version"
     productFlavors{
 
         create("dev") {
