@@ -21,3 +21,12 @@ dependencyResolutionManagement {
 
 rootProject.name = "IntervueAI"
 include(":app")
+include(":core")
+
+include(":core:network")
+include(":features")
+include(":core:util")
+include(":data")
+include(":features:home")
+
+include(":core:designsystem")

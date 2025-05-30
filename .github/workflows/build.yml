@@ -30,6 +30,12 @@ jobs:
       - name: Build DEV Flavor
         run: ./gradlew assembleDevDebug
 
+      - name: Upload Dev APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-debug-apk
+          path: app/build/outputs/apk/dev/debug/app-dev-debug.apk
+
   build-prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
