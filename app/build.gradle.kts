@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -27,6 +28,9 @@ android {
             )
         }
     }
+
+
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -36,6 +40,22 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    flavorDimensions += "version"
+    productFlavors{
+
+        create("dev") {
+            dimension = "version"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "IntervueAI Dev")
+        }
+
+        create("prod") {
+            dimension = "version"
+            // No suffixes here to keep the final app ID and name clean
+            resValue("string", "app_name", "IntervueAI")
+        }
     }
 }
 
