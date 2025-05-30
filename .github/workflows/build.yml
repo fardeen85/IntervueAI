@@ -50,7 +50,7 @@ jobs:
         run: ./gradlew assembleProdRelease
 
       - name: Upload Release APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: prod-release-apk
           path: app/build/outputs/apk/prod/release/app-prod-release.apk
