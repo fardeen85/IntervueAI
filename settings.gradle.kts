@@ -30,3 +30,4 @@ include(":data")
 include(":features:home")
 
 include(":core:designsystem")
+include(":domain")

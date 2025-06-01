@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.fardeen.intervueai"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.fardeen.intervueai"
@@ -56,4 +56,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(project(":core:util"))
+    api(libs.androidx.navigation3.ui.android)
 }
