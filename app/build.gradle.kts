@@ -27,6 +27,13 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        debug {
+            // Optional: debug-only configs
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
 
@@ -72,16 +79,19 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation3.ui.android)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3.android)
+    implementation(libs.lifecycle.viewmodel.navigation3.android)
     testImplementation(libs.junit)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    //implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(libs.androidx.navigation3.ui)
+    //implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.koin.core)
     implementation(libs.koin.android) // For Android
     implementation(libs.koin.androidx.compose) // For Compose
@@ -91,6 +101,7 @@ dependencies {
     implementation(project(":core:util"))
     implementation(project(":data"))
     implementation(project(":features:home"))
+    implementation(project(":features:selecttopic"))
 
 
 }

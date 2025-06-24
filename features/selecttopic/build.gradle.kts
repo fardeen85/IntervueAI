@@ -5,12 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.fardeen.intevueai"
+    namespace = "com.fardeen.intervueai"
     compileSdk = 36
 
     defaultConfig {
         minSdk = 28
         targetSdk = 36
+
     }
 
     buildTypes {
@@ -33,7 +34,6 @@ android {
         compose = true
     }
 
-
 }
 
 dependencies {
@@ -53,5 +53,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
 }

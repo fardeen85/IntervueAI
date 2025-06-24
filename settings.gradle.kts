@@ -31,3 +31,4 @@ include(":features:home")
 
 include(":core:designsystem")
 include(":domain")
+include(":features:selecttopic")
