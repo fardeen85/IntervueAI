@@ -2,6 +2,7 @@ package com.fardeen.intervueai
 
 import android.app.Application
 import com.fardeen.intervueai.di.appmodule
+import com.fardeen.intervueai.di.databaseModule
 import org.koin.core.context.startKoin
 
 class MyApplication :  Application()  {
@@ -9,7 +10,7 @@ class MyApplication :  Application()  {
     override fun onCreate() {
         super.onCreate()
         startKoin{
-            modules(appmodule)
+            modules(listOf(appmodule,databaseModule))
         }
     }
 }

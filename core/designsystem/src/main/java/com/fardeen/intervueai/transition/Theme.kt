@@ -14,6 +14,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import com.example.compose.darkScheme
+import com.example.compose.lightScheme
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -51,8 +53,8 @@ fun IntervueAITheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> darkScheme
+        else -> lightScheme
     }
 
     MaterialTheme(

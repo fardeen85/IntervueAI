@@ -19,6 +19,7 @@
             <option value="$PROJECT_DIR$/domain" />
             <option value="$PROJECT_DIR$/features" />
             <option value="$PROJECT_DIR$/features/home" />
+            <option value="$PROJECT_DIR$/features/interviewchat" />
             <option value="$PROJECT_DIR$/features/selecttopic" />
           </set>
         </option>

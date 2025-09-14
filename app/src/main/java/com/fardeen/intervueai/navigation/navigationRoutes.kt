@@ -6,3 +6,4 @@ interface NavigationRoutes
 
 @Serializable
 object Home : NavigationRoutes
+object SelectTopic:NavigationRoutes

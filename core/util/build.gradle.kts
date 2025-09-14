@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.fardeen.intervueai"
+    namespace = "com.fardeen.intervueai.util"
     compileSdk = 36
 
     defaultConfig {

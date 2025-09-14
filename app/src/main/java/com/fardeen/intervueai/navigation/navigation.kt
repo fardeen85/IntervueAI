@@ -3,6 +3,7 @@ package com.fardeen.intervueai.navigation
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -12,12 +13,15 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.fardeen.intervueai.HomeScreen
+import com.fardeen.intervueai.HomeScreenRoot
+import com.fardeen.intervueai.SelectTopicScreenRoot
+import com.fardeen.intervueai.SelectTopicViewModel
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -34,9 +38,10 @@ fun mainNavigation() {
             rememberSavedStateNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
         ),
+
         transitionSpec = {
             ContentTransform(
-                fadeIn(motionScheme.defaultEffectsSpec()),
+                scaleIn(initialScale = 0.7f),
                 fadeOut(motionScheme.defaultEffectsSpec()),
             )
         },
@@ -51,10 +56,20 @@ fun mainNavigation() {
             entry<Home> { entry ->
 
                 showSplash = false
-                HomeScreen {}
+                HomeScreenRoot {
+                    backstack.add(SelectTopic)
+                }
 
             }
+
+            entry<SelectTopic> { entry ->
+                SelectTopicScreenRoot() {
+                    backstack.remove(SelectTopic)
+                }
+            }
         }
+
+
     )
 
 

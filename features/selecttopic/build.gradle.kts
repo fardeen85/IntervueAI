@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.fardeen.intervueai"
+    namespace = "com.fardeen.intervueai.select_topic"
     compileSdk = 36
 
     defaultConfig {
@@ -53,4 +53,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(project(":core:util"))
+    implementation(project(":data"))
+    implementation(project(":domain"))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android) // For Android
+    implementation(libs.koin.androidx.compose) // For Compose
 }

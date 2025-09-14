@@ -57,5 +57,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.lottie.compose)
+    implementation(libs.koin.core)
+    implementation(libs.koin.android) // For Android
+    implementation(libs.koin.androidx.compose) // For Compose
 
 }
