@@ -12,11 +12,13 @@ class LocalDataSource(
         }
     }
 
-    suspend fun saveChatData(chats: List<ChatEntity>) {
+    suspend fun saveChatData(chats: ChatEntity): String {
         try {
             chatDao.saveChatData(chats)
+            return "success"
         } catch (e: Exception) {
             e.printStackTrace()
+            return e.message?.toString()?:""
         }
     }
 }

@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
         ChatEntity::class // add more entities here when needed
     ],
     version = 1,
-    exportSchema = true // keep true if you want schema versioning
+    exportSchema = false // keep true if you want schema versioning
 )
 abstract class AppDatabase : RoomDatabase() {
 

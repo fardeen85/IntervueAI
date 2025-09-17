@@ -11,7 +11,7 @@ interface ChatDao{
     @Query("SELECT * FROM chat_table")
     suspend fun getAllChatData(): List<ChatEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveChatData(chatEntity: List<ChatEntity>)
+    @Insert(onConflict = OnConflictStrategy.NONE)
+    suspend fun saveChatData(chatEntity: ChatEntity)
 
 }

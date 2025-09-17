@@ -34,9 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -44,8 +42,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +58,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -76,119 +71,435 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-// --- Data Classes (Simplified) ---
-data class User(val id: String, val name: String, val avatarResId: Int) // Use painterResource for avatar
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.cos
+import kotlin.math.sin
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 data class Message(
-    val id: String,
-    val user: User,
-    val text: String,
-    val timestamp: String, // For simplicity
-    val isMine: Boolean
+    val content: String,
+    val isFromAI: Boolean,
+    val senderName: String = ""
 )
 
-// --- Dummy Data ---
-val dummyUser1 = User("user1", "James", R.drawable.ic_dummy_avatar_1) // Replace with your drawable
-val dummyUser2 = User("user2", "Odette", R.drawable.ic_dummy_avatar_1)
-val dummyUser3 = User("user3", "Aisha", R.drawable.ic_dummy_avatar_1)
-val dummyUser4 = User("user4", "Josefina", R.drawable.ic_dummy_avatar_1)
-val dummyUser5 = User("user5", "Elie", R.drawable.ic_dummy_avatar_1)
-val currentUser = User("currentUser", "Me", R.drawable.ic_dummy_avatar_current_user)
+enum class WindowType {
+    Compact,
+    Medium,
+    Expanded
+}
 
-val dummyMessages = listOf(
-    Message("1", dummyUser1, "For sure! Who was the artist we listened to in the taxi?", "9:30 AM", false),
-    Message("2", dummyUser2, "Odette! One of my faves", "9:31 AM", false),
-    Message("3", dummyUser2, "Who's got that group photo?", "9:31 AM", false),
-    Message("4", dummyUser3, "Hang tight I'm making a shared album now for everything", "9:32 AM", false),
-    Message("5", dummyUser4, "Oh I've got some keepers", "9:33 AM", false),
-    Message("6", dummyUser5, "Post them up!", "9:34 AM", false),
-    Message("7", currentUser, "I got some nice shots too", "9:35 AM", true),
+data class WindowInfo(
+    val screenWidthInfo: WindowType
 )
 
-// --- Composable Functions ---
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen() {
-    var messages by remember { mutableStateOf(dummyMessages.take(4)) } // Start with a few messages
-    var showNiceAnimation by remember { mutableStateOf(false) }
-    val listState = rememberLazyListState()
+fun MessagingScreenWithWindowSize(windowInfo: WindowInfo) {
+    when(windowInfo.screenWidthInfo) {
+        WindowType.Compact -> MessagingScreenContent()
+        WindowType.Medium -> MessagingScreenContent()
+        WindowType.Expanded -> MessagingScreenContentLarge()
+    }
+}
 
-    // Simulate new messages arriving
-    LaunchedEffect(Unit) {
-        delay(2000)
-        messages = messages + dummyMessages[4]
-        listState.animateScrollToItem(messages.size -1)
-        delay(1500)
-        showNiceAnimation = true // Trigger NICE animation
-        messages = messages + dummyMessages[5]
-        listState.animateScrollToItem(messages.size -1)
-        delay(1000)
-        messages = messages + dummyMessages[6]
-        listState.animateScrollToItem(messages.size -1)
-        delay(2000)
-        showNiceAnimation = false // Hide NICE animation
+@Composable
+fun MessagingScreenContent() {
+    val messages = remember {
+        listOf(
+            Message("For sure! Who was the artist we listened to in the taxi?", true, "Gemini"),
+            Message("Odesza! One of my faves", false),
+            Message("We've got that group playlist!", false),
+            Message("Hang tight! I'm making a shared album now for everything", true, "Gemini"),
+            Message("Oh I've got some bangers", true, "Gemini"),
+            Message("Post them up!", false),
+            Message("I got some nice shots too", true, "Gemini")
+        )
     }
 
+    var messageText by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = { ChatTopBar() },
-        bottomBar = { ChatInputBar { newMessageText ->
-            val newMessage = Message(
-                (messages.size + 1).toString(),
-                currentUser,
-                newMessageText,
-                "Now",
-                true
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF9C4DCD),
+                        Color(0xFF7B1FA2),
+                        Color(0xFF6A1B9A)
+                    )
+                )
             )
-            messages = messages + newMessage
-            // Scroll to the new message
-            LaunchedEffect(messages.size) {
-                listState.animateScrollToItem(messages.size - 1)
-            }
-        } },
-        containerColor = Color(0xFFE6E0FF) // Light purple background
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
+            StatusBar()
+            ChatHeader()
+
             LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                itemsIndexed(messages, key = { _, message -> message.id }) { index, message ->
-                    AnimatedVisibility(
-                        visible = true, // Messages are always visible once added
-                        enter = slideInVertically(
-                            initialOffsetY = { it },
-                            animationSpec = tween(durationMillis = 300, delayMillis = 100 * index.coerceAtMost(5))
-                        ) + fadeIn(animationSpec = tween(durationMillis = 300)),
-                        exit = fadeOut(animationSpec = tween(durationMillis = 100)) // Can be added if messages are removed
+                items(messages.take(3)) { message ->
+                    MessageItem(message = message)
+                }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        ChatMessageItem(message = message)
+                        Text(
+                            text = "NICE",
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            modifier = Modifier.rotate(-12f)
+                        )
+                    }
+                }
+
+                items(messages.drop(3)) { message ->
+                    MessageItem(message = message)
+                }
+            }
+
+            MessageInput(
+                messageText = messageText,
+                onMessageTextChange = { messageText = it },
+                onSendMessage = { messageText = "" }
+            )
+        }
+
+        FloatingActionButton(
+            onClick = { },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = Color(0xFF6A1B9A)
+        ) {
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_arrow_back_24),
+                contentDescription = "Play",
+                colorFilter = ColorFilter.tint(Color.White),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun MessagingScreenContentLarge() {
+    val messages = remember {
+        listOf(
+            Message("For sure! Who was the artist we listened to in the taxi?", true, "Gemini"),
+            Message("Odesza! One of my faves", false),
+            Message("We've got that group playlist!", false),
+            Message("Hang tight! I'm making a shared album now for everything", true, "Gemini"),
+            Message("Oh I've got some bangers", true, "Gemini"),
+            Message("Post them up!", false),
+            Message("I got some nice shots too", true, "Gemini")
+        )
+    }
+
+    var messageText by remember { mutableStateOf("") }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF9C4DCD),
+                        Color(0xFF7B1FA2),
+                        Color(0xFF6A1B9A)
+                    )
+                )
+            )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Sidebar for large screens
+            Surface(
+                modifier = Modifier
+                    .width(320.dp)
+                    .fillMaxHeight(),
+                color = Color.White.copy(alpha = 0.1f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatusBar()
+
+                    Text(
+                        text = "Recent Chats",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+
+                    repeat(3) { index ->
+                        Surface(
+                            color = if (index == 0) Color.White.copy(alpha = 0.2f)
+                            else Color.White.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    Color(0xFF4285F4),
+                                                    Color(0xFF9C27B0),
+                                                    Color(0xFFE91E63)
+                                                )
+                                            )
+                                        )
+                                ) {
+                                    Canvas(modifier = Modifier.fillMaxSize()) {
+                                        drawGeminiStar(this)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = if (index == 0) "Music night out ✨" else "Chat ${index + 1}",
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "Last message preview...",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // "NICE" Animation Overlay
-            AnimatedVisibility(
-                visible = showNiceAnimation,
-                enter = fadeIn(animationSpec = tween(500)) + scaleIn(animationSpec = tween(500), initialScale = 0.5f),
-                exit = fadeOut(animationSpec = tween(500)) + scaleOut(animationSpec = tween(500), targetScale = 0.5f),
-                modifier = Modifier.align(Alignment.Center)
+            // Main chat area
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = "NICE",
-                    fontSize = 120.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF00C6FF), // Bright blue
-                    style = TextStyle(
-                        // Add shadow or other effects if needed
+                ChatHeaderLarge()
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(vertical = 24.dp)
+                ) {
+                    items(messages.take(3)) { message ->
+                        MessageItemLarge(message = message)
+                    }
+
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "NICE",
+                                fontSize = 64.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                modifier = Modifier.rotate(-12f)
+                            )
+                        }
+                    }
+
+                    items(messages.drop(3)) { message ->
+                        MessageItemLarge(message = message)
+                    }
+                }
+
+                MessageInputLarge(
+                    messageText = messageText,
+                    onMessageTextChange = { messageText = it },
+                    onSendMessage = { messageText = "" }
+                )
+            }
+        }
+
+        FloatingActionButton(
+            onClick = { },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            containerColor = Color(0xFF6A1B9A)
+        ) {
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_arrow_back_24),
+                contentDescription = "Play",
+                colorFilter = ColorFilter.tint(Color.White),
+                modifier = Modifier.size(28.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun StatusBar() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "9:30",
+            color = Color.Black,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            repeat(4) { index ->
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height((8 + index * 2).dp)
+                        .background(Color.Black, RoundedCornerShape(1.dp))
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Box(
+                modifier = Modifier
+                    .width(24.dp)
+                    .height(12.dp)
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawRoundRect(
+                        color = Color.Black,
+                        size = size,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f)
                     )
+                    drawRoundRect(
+                        color = Color.Black,
+                        topLeft = Offset(2f, 2f),
+                        size = androidx.compose.ui.geometry.Size(size.width * 0.8f, size.height - 4f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatHeader() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White.copy(alpha = 0.1f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_arrow_back_24),
+                contentDescription = "Back",
+                colorFilter = ColorFilter.tint(Color.Black),
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            GroupAvatarCluster(size = 40.dp)
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Music night out ✨",
+                    color = Color.Black,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Image(
+                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_video_camera_back_24),
+                    contentDescription = "Video call",
+                    colorFilter = ColorFilter.tint(Color.Black),
+                    modifier = Modifier.size(20.dp)
+                )
+                Image(
+                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_video_camera_back_24),
+                    contentDescription = "Voice call",
+                    colorFilter = ColorFilter.tint(Color.Black),
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -196,215 +507,458 @@ fun ChatScreen() {
 }
 
 @Composable
-fun ChatTopBar() {
+fun ChatHeaderLarge() {
     Surface(
-        color = Color.Transparent, // Make it blend with the screen background initially
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White.copy(alpha = 0.1f)
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .fillMaxWidth()
+                .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* Handle back */ }) {
-               Image(painterResource(R.drawable.baseline_arrow_back_24), contentDescription = "Back")
+            GroupAvatarCluster(size = 48.dp)
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Music night out ✨",
+                    color = Color.Black,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "4 participants",
+                    color = Color.Black.copy(alpha = 0.7f),
+                    fontSize = 12.sp
+                )
             }
-            Spacer(Modifier.width(8.dp))
-            // Dummy Group Avatars (replace with actual logic)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                for (i in 0..3) { // Show a few overlapping avatars
-                    Image(
-                        painter = painterResource(id = dummyMessages[i % dummyMessages.size].user.avatarResId),
-                        contentDescription = "User Avatar",
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clip(CircleShape)
-                            .offset(x = (-8 * i).dp) // Overlap effect
-                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                    )
-                }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Image(
+                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_video_camera_back_24),
+                    contentDescription = "Video call",
+                    colorFilter = ColorFilter.tint(Color.Black),
+                    modifier = Modifier.size(24.dp)
+                )
+                Image(
+                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_call_24),
+                    contentDescription = "Voice call",
+                    colorFilter = ColorFilter.tint(Color.Black),
+                    modifier = Modifier.size(24.dp)
+                )
+                Image(
+                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_more_vert_24),
+                    contentDescription = "More options",
+                    colorFilter = ColorFilter.tint(Color.Black),
+                    modifier = Modifier.size(24.dp)
+                )
             }
-            Spacer(Modifier.width(16.dp))
+        }
+    }
+}
+
+@Composable
+fun GroupAvatarCluster(size: Dp) {
+    Box(modifier = Modifier.size(size)) {
+        Box(
+            modifier = Modifier
+                .size(size * 0.6f)
+                .clip(CircleShape)
+                .background(Color(0xFF6A1B9A))
+                .align(Alignment.TopStart)
+        )
+        Box(
+            modifier = Modifier
+                .size(size * 0.5f)
+                .clip(CircleShape)
+                .background(Color(0xFFFF9800))
+                .align(Alignment.TopEnd)
+        )
+        Box(
+            modifier = Modifier
+                .size(size * 0.45f)
+                .clip(CircleShape)
+                .background(Color(0xFF2196F3))
+                .align(Alignment.BottomEnd)
+        )
+        Box(
+            modifier = Modifier
+                .size(size * 0.4f)
+                .clip(CircleShape)
+                .background(Color(0xFF4CAF50))
+                .align(Alignment.BottomStart)
+        )
+    }
+}
+
+@Composable
+fun MessageItem(message: Message) {
+    if (message.isFromAI) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            GeminiAvatar(size = 32.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+
             Column {
-                Text("Music night out", fontWeight = FontWeight.SemiBold, color = Color.Black)
-                Text("Group chat", fontSize = 12.sp, color = Color.Gray)
-            }
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = { /* Handle video call */ }) {
-                Image(painterResource(R.drawable.baseline_video_camera_back_24), contentDescription = "Back")
+                Text(
+                    text = message.senderName,
+                    fontSize = 10.sp,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
 
-            }
-            IconButton(onClick = { /* Handle call */ }) {
-
-                Image(painterResource(R.drawable.baseline_call_24), contentDescription = "Back")
-
-            }
-        }
-    }
-}
-
-@Composable
-fun ChatMessageItem(message: Message) {
-    val bubbleColor = if (message.isMine) Color(0xFFD0BCFF) else Color.White // Purple for mine, White for others
-    val textColor = if (message.isMine) Color.Black else Color.Black
-    val horizontalArrangement = if (message.isMine) Arrangement.End else Arrangement.Start
-    val bubbleShape = if (message.isMine) {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    } else {
-        RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = horizontalArrangement,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        if (!message.isMine) {
-            Image(
-                painter = painterResource(id = message.user.avatarResId),
-                contentDescription = message.user.name,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(Modifier.width(8.dp))
-        }
-
-        Surface(
-            shape = bubbleShape,
-            color = bubbleColor,
-            modifier = Modifier.weight(1f, fill = false) // Important for bubble to wrap content
-        ) {
-            Text(
-                text = message.text,
-                color = textColor,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                fontSize = 15.sp
-            )
-        }
-        if (message.isMine) {
-            // Could add read receipts or timestamp here if needed next to the bubble
-        }
-    }
-}
-
-@Composable
-fun ChatInputBar(onSendMessage: (String) -> Unit) {
-    var textState by remember { mutableStateOf(TextFieldValue("")) }
-    val iconsColor = Color(0xFF007AFF) // Blue for icons
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.Transparent // Or a slightly different shade from background
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-                .background(Color.White, RoundedCornerShape(24.dp))
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { /* Handle add */ }) {
-
-                Image(painterResource(R.drawable.outline_add_comment_24), contentDescription = "Back")
-
-            }
-            IconButton(onClick = { /* Handle camera */ }) {
-
-                Image(painterResource(R.drawable.baseline_video_camera_back_24), contentDescription = "Back")
-
-            }
-            IconButton(onClick = { /* Handle voice memo */ }) {
-
-                Image(painterResource(R.drawable.baseline_call_24), contentDescription = "Back")
-
-            }
-
-            BasicTextField(
-                value = textState,
-                onValueChange = { textState = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                decorationBox = { innerTextField ->
-                    Box(contentAlignment = Alignment.CenterStart) {
-                        if (textState.text.isEmpty()) {
-                            Text("Message", color = Color.Gray, fontSize = 16.sp)
-                        }
-                        innerTextField()
-                    }
-                }
-            )
-
-            AnimatedVisibility(
-                visible = textState.text.isNotEmpty(),
-                enter = fadeIn() + slideInHorizontally(initialOffsetX = { it / 2 }),
-                exit = fadeOut() + slideOutHorizontally(targetOffsetX = { it / 2 })
-            ) {
-                IconButton(onClick = {
-                    if (textState.text.isNotBlank()) {
-                        onSendMessage(textState.text)
-                        textState = TextFieldValue("") // Clear input
-                    }
-                }) {
-                    androidx.compose.material3.Icon(
-                        Icons.Filled.Send,
-                        contentDescription = "Send",
-                        tint = iconsColor,
-                        modifier = Modifier
-                            .background(Color(0xFF00C6FF).copy(alpha = 0.1f), CircleShape) // Light blue circle bg
-                            .padding(6.dp)
+                Surface(
+                    color = Color.White,
+                    shape = RoundedCornerShape(
+                        topStart = 4.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 16.dp,
+                        bottomEnd = 16.dp
+                    ),
+                    modifier = Modifier.widthIn(max = 280.dp)
+                ) {
+                    Text(
+                        text = message.content,
+                        fontSize = 14.sp,
+                        color = Color.Black.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(12.dp)
                     )
                 }
             }
-            AnimatedVisibility(
-                visible = textState.text.isEmpty(),
-                enter = fadeIn() + slideInHorizontally(initialOffsetX = { it / 2 }),
-                exit = fadeOut() + slideOutHorizontally(targetOffsetX = { it / 2 })
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Surface(
+                color = Color(0xFF2196F3),
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 4.dp,
+                    bottomStart = 16.dp,
+                    bottomEnd = 16.dp
+                ),
+                modifier = Modifier.widthIn(max = 280.dp)
             ) {
-                IconButton(onClick = { /* Handle emoji */ }) {
-                    androidx.compose.material3.Icon(Icons.Filled.EmojiEmotions, contentDescription = "Emoji", tint = iconsColor)
-                }
+                Text(
+                    text = message.content,
+                    fontSize = 14.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(12.dp)
+                )
             }
         }
     }
 }
 
-// --- Preview ---
-@Preview(showBackground = true, device = "spec:shape=Normal,width=360,height=640,unit=dp,dpi=480")
 @Composable
-fun DefaultChatScreenPreview() {
-    MaterialTheme { // Ensure a MaterialTheme is applied for previews
-        ChatScreen()
+fun MessageItemLarge(message: Message) {
+    if (message.isFromAI) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            GeminiAvatar(size = 40.dp)
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    text = message.senderName,
+                    fontSize = 12.sp,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+
+                Surface(
+                    color = Color.White,
+                    shape = RoundedCornerShape(
+                        topStart = 6.dp,
+                        topEnd = 20.dp,
+                        bottomStart = 20.dp,
+                        bottomEnd = 20.dp
+                    ),
+                    modifier = Modifier.widthIn(max = 400.dp)
+                ) {
+                    Text(
+                        text = message.content,
+                        fontSize = 16.sp,
+                        color = Color.Black.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Surface(
+                color = Color(0xFF2196F3),
+                shape = RoundedCornerShape(
+                    topStart = 20.dp,
+                    topEnd = 6.dp,
+                    bottomStart = 20.dp,
+                    bottomEnd = 20.dp
+                ),
+                modifier = Modifier.widthIn(max = 400.dp)
+            ) {
+                Text(
+                    text = message.content,
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
     }
 }
 
-// --- Dummy Drawable Resources (Important!) ---
-// You need to create these drawable resources in your `res/drawable` folder.
-// For example, `ic_dummy_avatar_1.xml` (Vector Drawable or import an image):
-/*
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-  <path
-      android:fillColor="#FF4081"
-      android:pathData="M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"/>
-</vector>
-*/
-// Create similar dummy drawables:
-// R.drawable.ic_dummy_avatar_1
-// R.drawable.ic_dummy_avatar_2
-// R.drawable.ic_dummy_avatar_3
-// R.drawable.ic_dummy_avatar_4
-// R.drawable.ic_dummy_avatar_5
-// R.drawable.ic_dummy_avatar_current_user
-// If you don't have these, painterResource() will crash.
-// As a quick placeholder, you can use built-in icons like Icons.Filled.Person
-// e.g., painter = rememberVectorPainter(Icons.Filled.Person)
-// However, the image shows distinct avatars, so creating placeholders is better.
+@Composable
+fun GeminiAvatar(size: Dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF4285F4),
+                        Color(0xFF9C27B0),
+                        Color(0xFFE91E63)
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(size * 0.5f)) {
+            drawGeminiStar(this)
+        }
+    }
+}
+
+@Composable
+fun MessageInput(
+    messageText: String,
+    onMessageTextChange: (String) -> Unit,
+    onSendMessage: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_attach_file_24),
+                contentDescription = "Attach file",
+                colorFilter = ColorFilter.tint(Color(0xFF2196F3)),
+                modifier = Modifier.size(24.dp)
+            )
+
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_image_24),
+                contentDescription = "Image",
+                colorFilter = ColorFilter.tint(Color.Gray),
+                modifier = Modifier.size(24.dp)
+            )
+
+            TextField(
+                value = messageText,
+                onValueChange = onMessageTextChange,
+                placeholder = { Text("Message...", color = Color.Gray) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                modifier = Modifier.weight(1f)
+            )
+
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_mic_24),
+                contentDescription = "Microphone",
+                colorFilter = ColorFilter.tint(Color.Gray),
+                modifier = Modifier.size(20.dp)
+            )
+
+            IconButton(
+                onClick = onSendMessage,
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Color(0xFF2196F3), CircleShape)
+            ) {
+                Image(
+                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_send_24),
+                    contentDescription = "Send",
+                    colorFilter = ColorFilter.tint(Color.White),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageInputLarge(
+    messageText: String,
+    onMessageTextChange: (String) -> Unit,
+    onSendMessage: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(28.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_attach_file_24),
+                contentDescription = "Attach file",
+                colorFilter = ColorFilter.tint(Color(0xFF2196F3)),
+                modifier = Modifier.size(28.dp)
+            )
+
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_image_24),
+                contentDescription = "Image",
+                colorFilter = ColorFilter.tint(Color.Gray),
+                modifier = Modifier.size(28.dp)
+            )
+
+            TextField(
+                value = messageText,
+                onValueChange = onMessageTextChange,
+                placeholder = { Text("Message...", color = Color.Gray, fontSize = 16.sp) },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                modifier = Modifier.weight(1f)
+            )
+
+            Image(
+                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_mic_24),
+                contentDescription = "Microphone",
+                colorFilter = ColorFilter.tint(Color.Gray),
+                modifier = Modifier.size(24.dp)
+            )
+
+            IconButton(
+                onClick = onSendMessage,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color(0xFF2196F3), CircleShape)
+            ) {
+                Image(
+                    painter = painterResource(id = com.fardeen.intervueai.interviewchat.R.drawable.baseline_send_24),
+                    contentDescription = "Send",
+                    colorFilter = ColorFilter.tint(Color.White),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+fun drawGeminiStar(drawScope: DrawScope) {
+    val path = Path()
+    val size = drawScope.size
+    val centerX = size.width / 2
+    val centerY = size.height / 2
+    val radius = size.minDimension / 4
+
+    for (i in 0 until 8) {
+        val angle = (i * 45f - 90f) * (Math.PI / 180f).toFloat()
+        val r = if (i % 2 == 0) radius * 1.5f else radius * 0.7f
+        val x = centerX + r * kotlin.math.cos(angle)
+        val y = centerY + r * kotlin.math.sin(angle)
+
+        if (i == 0) {
+            path.moveTo(x, y)
+        } else {
+            path.lineTo(x, y)
+        }
+    }
+    path.close()
+
+    drawScope.drawPath(
+        path = path,
+        color = Color.White
+    )
+}
+
+// Previews
+@Preview(name = "Compact Screen", widthDp = 360, heightDp = 640)
+@Composable
+fun MessagingScreenCompactPreview() {
+    MaterialTheme {
+        MessagingScreenWithWindowSize(
+            WindowInfo(screenWidthInfo = WindowType.Compact)
+        )
+    }
+}
+
+@Preview(name = "Medium Screen", widthDp = 600, heightDp = 800)
+@Composable
+fun MessagingScreenMediumPreview() {
+    MaterialTheme {
+        MessagingScreenWithWindowSize(
+            WindowInfo(screenWidthInfo = WindowType.Medium)
+        )
+    }
+}
+
+@Preview(name = "Large Screen", widthDp = 900, heightDp = 600)
+@Composable
+fun MessagingScreenLargePreview() {
+    MaterialTheme {
+        MessagingScreenWithWindowSize(
+            WindowInfo(screenWidthInfo = WindowType.Expanded)
+        )
+    }
+}
+
+@Preview(name = "Tablet Portrait", widthDp = 768, heightDp = 1024)
+@Composable
+fun MessagingScreenTabletPortraitPreview() {
+    MaterialTheme {
+        MessagingScreenWithWindowSize(
+            WindowInfo(screenWidthInfo = WindowType.Expanded)
+        )
+    }
+}
+
+@Preview(name = "Foldable Unfolded", widthDp = 840, heightDp = 900)
+@Composable
+fun MessagingScreenFoldablePreview() {
+    MaterialTheme {
+        MessagingScreenWithWindowSize(
+            WindowInfo(screenWidthInfo = WindowType.Expanded)
+        )
+    }
+}

@@ -18,8 +18,9 @@ class LocalRepositoryImpl(private val localDataSource: LocalDataSource) : LocalR
 
     }
 
-    override suspend fun saveToChat(ChatEntity: List<ChatModel>) {
-        localDataSource.saveChatData(ChatEntity.map { it.toEntity() })
+    override suspend fun saveToChat(ChatEntity:ChatModel): Flow<String>{
+
+        return flow { emit(localDataSource.saveChatData(ChatEntity.toEntity())) }.flowOn(Dispatchers.IO)
 
     }
 
