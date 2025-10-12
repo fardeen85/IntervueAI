@@ -29,10 +29,17 @@ object KtorClient {
             }))
         }
 
-        install(HttpTimeout) {
+      /*  install(HttpTimeout) {
             requestTimeoutMillis = 15000L
             connectTimeoutMillis = 15000L
             socketTimeoutMillis = 15000L
+        }
+*/
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = 10_000
+            socketTimeoutMillis = 10_000
+            connectTimeoutMillis = 10_000
         }
 
 

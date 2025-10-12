@@ -1,5 +1,6 @@
 package com.fardeen.intervueai.remote
 
+import android.util.Log
 import com.fardeen.intevueai.model.GeminiRequest
 import com.fardeen.intevueai.model.GeminiResponseModel
 import com.fardeen.intevueai.model.RequestContent
@@ -17,6 +18,9 @@ import io.ktor.http.parameters
 import kotlinx.serialization.json.Json
 
 class RemoteDataSource {
+
+
+
 
 
     suspend fun callGeminiAPI(prompt: String): GeminiResponseModel {
@@ -58,6 +62,7 @@ class RemoteDataSource {
           }*/
         } catch (e: Exception) {
 
+            Log.d("TAG","exception in parsing model ${e.message}")
             e.printStackTrace()
             GeminiResponseModel(
                 candidates = emptyList(),

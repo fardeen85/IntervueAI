@@ -10,7 +10,8 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [
-        ChatEntity::class // add more entities here when needed
+        ChatEntity::class, // add more entities here when needed
+        ChatListingEntity::class
     ],
     version = 1,
     exportSchema = false // keep true if you want schema versioning
@@ -19,4 +20,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     // Provide DAOs here
     abstract fun chatDao(): ChatDao
+    abstract fun chatListingDao(): ChatListingDao
+
 }

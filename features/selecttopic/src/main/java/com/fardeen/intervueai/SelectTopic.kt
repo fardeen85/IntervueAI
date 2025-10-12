@@ -94,7 +94,7 @@ fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewMo
             is RequestState.Error -> {
 
                 showBottomSheet = true
-                errorMessage = if (state is RequestState.Error) state.message else "Something went wrong"
+                errorMessage = state.message.ifEmpty { "Something went wrong" }
                 Log.d("TAG",errorMessage)
 
 
@@ -216,6 +216,8 @@ fun SelectTopicScreenContent(
                     if (textfieldValue.isNotEmpty()) {
 
                         selectTopicViewModel.verifyTopicByGemini(textfieldValue)
+                       // selectTopicViewModel.f()
+
 
                     }
 

@@ -1,5 +1,7 @@
 package com.fardeen.intervueai
 
+import android.util.Log
+import com.fardeen.intervueai.remote.KtorClient
 import com.fardeen.intervueai.remote.RemoteDataSource
 import com.fardeen.intevueai.gateway.GeminiRepository
 import com.fardeen.intevueai.model.GeminiRequest
@@ -28,10 +30,15 @@ import kotlinx.coroutines.flow.flowOn
 class GeminiRepositoryImpl(val remoteDataSource: RemoteDataSource) : GeminiRepository {
 
 
-    override suspend fun callGemini(prompt: String): Flow<GeminiResponseModel>{
+    override  fun callGemini(prompt: String): Flow<GeminiResponseModel>{
 
         return flow { emit(remoteDataSource.callGeminiAPI(prompt)) }.flowOn(Dispatchers.IO)
     }
+
+
+
+
+
 
 
 }

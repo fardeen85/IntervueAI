@@ -102,6 +102,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":features:home"))
     implementation(project(":features:selecttopic"))
+    implementation(project(":features:createChatMeta"))
     implementation(project(":domain"))
 
 

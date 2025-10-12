@@ -7,8 +7,12 @@ import kotlinx.coroutines.flow.Flow
 
 class CallGeminiUseCase(val repository: GeminiRepository) {
 
-    suspend operator fun invoke(prompt: String): Flow<GeminiResponseModel>{
+     operator fun invoke(prompt: String): Flow<GeminiResponseModel>{
 
        return repository.callGemini(prompt)
     }
+
+
+
+
 }

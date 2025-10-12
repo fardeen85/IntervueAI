@@ -7,3 +7,7 @@ interface NavigationRoutes
 @Serializable
 object Home : NavigationRoutes
 object SelectTopic:NavigationRoutes
+
+object createChatMeta:NavigationRoutes
+
+object chatScreen : NavigationRoutes

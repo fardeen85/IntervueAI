@@ -31,8 +31,8 @@ fun BottomChatBar(){
             modifier  = Modifier.background(Color.Blue).padding(8.dp)
         ){
 
-            Image(modifier = Modifier.weight(0.5f),painter = painterResource(R.drawable.outline_add_comment_24), contentDescription = "add")
-            Image(modifier = Modifier.weight(0.5f),painter = painterResource(R.drawable.outline_voice_chat_24), contentDescription = "voice")
+            Image(modifier = Modifier.weight(0.5f),painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.outline_add_comment_24), contentDescription = "add")
+            Image(modifier = Modifier.weight(0.5f),painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.outline_voice_chat_24), contentDescription = "voice")
             Card(modifier = Modifier.weight(1.5f), shape = RoundedCornerShape(100.dp)){
 
                 TextField(

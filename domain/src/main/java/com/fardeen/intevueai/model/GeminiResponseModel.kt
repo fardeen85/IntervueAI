@@ -2,7 +2,6 @@ package com.fardeen.intevueai.model
 
 import kotlinx.serialization.Serializable
 
-
 @Serializable
 data class GeminiResponseModel(
     val candidates: List<Candidate>,

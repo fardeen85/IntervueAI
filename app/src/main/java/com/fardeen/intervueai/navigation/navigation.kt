@@ -22,6 +22,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.fardeen.intervueai.HomeScreenRoot
 import com.fardeen.intervueai.SelectTopicScreenRoot
 import com.fardeen.intervueai.SelectTopicViewModel
+import com.fardeen.intervueai.createchatMeta.presentation.CreateChatMetaScreenRoot
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -64,9 +65,17 @@ fun mainNavigation() {
 
             entry<SelectTopic> { entry ->
                 SelectTopicScreenRoot() {
-                    backstack.remove(SelectTopic)
+                    backstack.add(createChatMeta)
                 }
             }
+
+            entry<createChatMeta>{entry->
+                CreateChatMetaScreenRoot(){
+                    backstack.add(chatScreen)
+                }
+            }
+
+
         }
 
 

@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface GeminiRepository {
 
-    suspend fun callGemini(prompt:String) : Flow<GeminiResponseModel>
+     fun callGemini(prompt:String) : Flow<GeminiResponseModel>
+
+
 
 }
