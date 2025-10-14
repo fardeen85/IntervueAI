@@ -104,6 +104,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
+import androidx.compose.material3.adaptive.layout.SupportingPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldPaneScope
+import androidx.compose.material3.adaptive.navigation.NavigableSupportingPaneScaffold
+import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaffoldNavigator
 import androidx.compose.runtime.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -112,6 +119,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fardeen.intervueai.interviewchat.R
 
 data class Message(
     val content: String,
@@ -129,13 +137,210 @@ data class WindowInfo(
     val screenWidthInfo: WindowType
 )
 
+
+sealed interface DiscussionPane {
+    data object Main : DiscussionPane
+    data object ChatListing : DiscussionPane
+    //data class ChatDetail( chatId: String) : DiscussionPane
+}
+
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+fun interviwChatRootScreen(){
+
+    val navController = rememberSupportingPaneScaffoldNavigator<DiscussionPane>()
+    val scope = rememberCoroutineScope()
+    NavigableSupportingPaneScaffold(
+
+        navigator = navController,
+        supportingPane = {
+
+            SupportingPane()
+        },
+        mainPane = {
+
+            AnimatedPane(
+                modifier = Modifier
+                    .safeContentPadding()
+
+            ){
+                /*if (navController.scaffoldValue[SupportingPaneScaffoldRole.Supporting] == PaneAdaptedValue.Hidden) {
+                    MainPane()
+                }*/
+                MainPane(){
+
+                    if (navController.scaffoldValue[SupportingPaneScaffoldRole.Supporting] == PaneAdaptedValue.Hidden){
+
+                        scope.launch {
+                            navController.navigateTo(SupportingPaneScaffoldRole.Supporting)
+                        }
+
+                    }
+                }
+            }
+        },
+
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+fun ThreePaneScaffoldPaneScope.MainPane(onclick:()-> Unit){
+
+    val messages = remember {
+        listOf(
+            Message("For sure! Who was the artist we listened to in the taxi?", true, "Gemini"),
+            Message("Odesza! One of my faves", false),
+            Message("We've got that group playlist!", false),
+            Message("Hang tight! I'm making a shared album now for everything", true, "Gemini"),
+            Message("Oh I've got some bangers", true, "Gemini"),
+            Message("Post them up!", false),
+            Message("I got some nice shots too", true, "Gemini")
+        )
+    }
+    var messageText by remember { mutableStateOf("") }
+
+    // Main chat area
+    Scaffold (
+
+        topBar = {
+            ChatHeaderLarge(){
+                onclick()
+            }
+        },
+
+        bottomBar = {
+            MessageInput(
+                messageText = messageText,
+                onMessageTextChange = { messageText = it },
+                onSendMessage = { messageText = "" }
+            )
+        }
+    ) { innerPadding->
+
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(vertical = 24.dp)
+        ) {
+            items(messages.take(3)) { message ->
+                MessageItemLarge(message = message)
+            }
+
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "NICE",
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        modifier = Modifier.rotate(-12f)
+                    )
+                }
+            }
+
+            items(messages.drop(3)) { message ->
+                MessageItemLarge(message = message)
+            }
+        }
+
+
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+fun ThreePaneScaffoldPaneScope.SupportingPane(){
+
+    // Sidebar for large screens
+    Surface(
+        modifier = Modifier
+            .width(200.dp)
+            .fillMaxHeight(),
+        color = Color.White.copy(alpha = 0.1f)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatusBar()
+
+            Text(
+                text = "Recent Chats",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            repeat(3) { index ->
+                Surface(
+                    color = if (index == 0) Color.White.copy(alpha = 0.2f)
+                    else Color.White.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFF4285F4),
+                                            Color(0xFF9C27B0),
+                                            Color(0xFFE91E63)
+                                        )
+                                    )
+                                )
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawGeminiStar(this)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = if (index == 0) "Music night out ✨" else "Chat ${index + 1}",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Last message preview...",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}
 @Composable
 fun MessagingScreenWithWindowSize(windowInfo: WindowInfo) {
-    when(windowInfo.screenWidthInfo) {
-        WindowType.Compact -> MessagingScreenContent()
-        WindowType.Medium -> MessagingScreenContent()
-        WindowType.Expanded -> MessagingScreenContentLarge()
-    }
+    interviwChatRootScreen()
 }
 
 @Composable
@@ -176,7 +381,7 @@ fun MessagingScreenContent() {
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 16.dp),
+                    .padding( 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
@@ -221,7 +426,7 @@ fun MessagingScreenContent() {
             containerColor = Color(0xFF6A1B9A)
         ) {
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_arrow_back_24),
+                painter = painterResource(R.drawable.baseline_arrow_back_24),
                 contentDescription = "Play",
                 colorFilter = ColorFilter.tint(Color.White),
                 modifier = Modifier.size(24.dp)
@@ -262,125 +467,9 @@ fun MessagingScreenContentLarge() {
         Row(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Sidebar for large screens
-            Surface(
-                modifier = Modifier
-                    .width(320.dp)
-                    .fillMaxHeight(),
-                color = Color.White.copy(alpha = 0.1f)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatusBar()
 
-                    Text(
-                        text = "Recent Chats",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    )
 
-                    repeat(3) { index ->
-                        Surface(
-                            color = if (index == 0) Color.White.copy(alpha = 0.2f)
-                            else Color.White.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(
-                                                    Color(0xFF4285F4),
-                                                    Color(0xFF9C27B0),
-                                                    Color(0xFFE91E63)
-                                                )
-                                            )
-                                        )
-                                ) {
-                                    Canvas(modifier = Modifier.fillMaxSize()) {
-                                        drawGeminiStar(this)
-                                    }
-                                }
 
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
-                                    Text(
-                                        text = if (index == 0) "Music night out ✨" else "Chat ${index + 1}",
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = "Last message preview...",
-                                        color = Color.White.copy(alpha = 0.7f),
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Main chat area
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                ChatHeaderLarge()
-
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(vertical = 24.dp)
-                ) {
-                    items(messages.take(3)) { message ->
-                        MessageItemLarge(message = message)
-                    }
-
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "NICE",
-                                fontSize = 64.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White,
-                                modifier = Modifier.rotate(-12f)
-                            )
-                        }
-                    }
-
-                    items(messages.drop(3)) { message ->
-                        MessageItemLarge(message = message)
-                    }
-                }
-
-                MessageInputLarge(
-                    messageText = messageText,
-                    onMessageTextChange = { messageText = it },
-                    onSendMessage = { messageText = "" }
-                )
-            }
         }
 
         FloatingActionButton(
@@ -391,7 +480,7 @@ fun MessagingScreenContentLarge() {
             containerColor = Color(0xFF6A1B9A)
         ) {
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_arrow_back_24),
+                painter = painterResource(R.drawable.baseline_arrow_back_24),
                 contentDescription = "Play",
                 colorFilter = ColorFilter.tint(Color.White),
                 modifier = Modifier.size(28.dp)
@@ -440,13 +529,13 @@ fun StatusBar() {
                     drawRoundRect(
                         color = Color.Black,
                         size = size,
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f)
+                        cornerRadius = CornerRadius(4f)
                     )
                     drawRoundRect(
                         color = Color.Black,
                         topLeft = Offset(2f, 2f),
-                        size = androidx.compose.ui.geometry.Size(size.width * 0.8f, size.height - 4f),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f)
+                        size = Size(size.width * 0.8f, size.height - 4f),
+                        cornerRadius = CornerRadius(2f)
                     )
                 }
             }
@@ -467,7 +556,7 @@ fun ChatHeader() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_arrow_back_24),
+                painter = painterResource(R.drawable.baseline_arrow_back_24),
                 contentDescription = "Back",
                 colorFilter = ColorFilter.tint(Color.Black),
                 modifier = Modifier.size(24.dp)
@@ -490,13 +579,13 @@ fun ChatHeader() {
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Image(
-                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_video_camera_back_24),
+                    painter = painterResource(R.drawable.baseline_video_camera_back_24),
                     contentDescription = "Video call",
                     colorFilter = ColorFilter.tint(Color.Black),
                     modifier = Modifier.size(20.dp)
                 )
                 Image(
-                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_video_camera_back_24),
+                    painter = painterResource(R.drawable.baseline_video_camera_back_24),
                     contentDescription = "Voice call",
                     colorFilter = ColorFilter.tint(Color.Black),
                     modifier = Modifier.size(20.dp)
@@ -507,7 +596,7 @@ fun ChatHeader() {
 }
 
 @Composable
-fun ChatHeaderLarge() {
+fun ChatHeaderLarge(onclick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.White.copy(alpha = 0.1f)
@@ -538,19 +627,21 @@ fun ChatHeaderLarge() {
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Image(
-                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_video_camera_back_24),
+                    painter = painterResource(R.drawable.baseline_video_camera_back_24),
                     contentDescription = "Video call",
                     colorFilter = ColorFilter.tint(Color.Black),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp).clickable{
+                        onclick()
+                    }
                 )
                 Image(
-                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_call_24),
+                    painter = painterResource(R.drawable.baseline_call_24),
                     contentDescription = "Voice call",
                     colorFilter = ColorFilter.tint(Color.Black),
                     modifier = Modifier.size(24.dp)
                 )
                 Image(
-                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_more_vert_24),
+                    painter = painterResource(R.drawable.baseline_more_vert_24),
                     contentDescription = "More options",
                     colorFilter = ColorFilter.tint(Color.Black),
                     modifier = Modifier.size(24.dp)
@@ -598,7 +689,7 @@ fun GroupAvatarCluster(size: Dp) {
 fun MessageItem(message: Message) {
     if (message.isFromAI) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.Start
         ) {
             GeminiAvatar(size = 32.dp)
@@ -764,14 +855,14 @@ fun MessageInput(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_attach_file_24),
+                painter = painterResource(R.drawable.baseline_attach_file_24),
                 contentDescription = "Attach file",
                 colorFilter = ColorFilter.tint(Color(0xFF2196F3)),
                 modifier = Modifier.size(24.dp)
             )
 
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_image_24),
+                painter = painterResource(R.drawable.baseline_image_24),
                 contentDescription = "Image",
                 colorFilter = ColorFilter.tint(Color.Gray),
                 modifier = Modifier.size(24.dp)
@@ -791,7 +882,7 @@ fun MessageInput(
             )
 
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_mic_24),
+                painter = painterResource(R.drawable.baseline_mic_24),
                 contentDescription = "Microphone",
                 colorFilter = ColorFilter.tint(Color.Gray),
                 modifier = Modifier.size(20.dp)
@@ -804,7 +895,7 @@ fun MessageInput(
                     .background(Color(0xFF2196F3), CircleShape)
             ) {
                 Image(
-                    painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_send_24),
+                    painter = painterResource(R.drawable.baseline_send_24),
                     contentDescription = "Send",
                     colorFilter = ColorFilter.tint(Color.White),
                     modifier = Modifier.size(16.dp)
@@ -835,14 +926,14 @@ fun MessageInputLarge(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_attach_file_24),
+                painter = painterResource(R.drawable.baseline_attach_file_24),
                 contentDescription = "Attach file",
                 colorFilter = ColorFilter.tint(Color(0xFF2196F3)),
                 modifier = Modifier.size(28.dp)
             )
 
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_image_24),
+                painter = painterResource(R.drawable.baseline_image_24),
                 contentDescription = "Image",
                 colorFilter = ColorFilter.tint(Color.Gray),
                 modifier = Modifier.size(28.dp)
@@ -862,7 +953,7 @@ fun MessageInputLarge(
             )
 
             Image(
-                painter = painterResource(com.fardeen.intervueai.interviewchat.R.drawable.baseline_mic_24),
+                painter = painterResource(R.drawable.baseline_mic_24),
                 contentDescription = "Microphone",
                 colorFilter = ColorFilter.tint(Color.Gray),
                 modifier = Modifier.size(24.dp)
@@ -875,7 +966,7 @@ fun MessageInputLarge(
                     .background(Color(0xFF2196F3), CircleShape)
             ) {
                 Image(
-                    painter = painterResource(id = com.fardeen.intervueai.interviewchat.R.drawable.baseline_send_24),
+                    painter = painterResource(id = R.drawable.baseline_send_24),
                     contentDescription = "Send",
                     colorFilter = ColorFilter.tint(Color.White),
                     modifier = Modifier.size(20.dp)
@@ -895,8 +986,8 @@ fun drawGeminiStar(drawScope: DrawScope) {
     for (i in 0 until 8) {
         val angle = (i * 45f - 90f) * (Math.PI / 180f).toFloat()
         val r = if (i % 2 == 0) radius * 1.5f else radius * 0.7f
-        val x = centerX + r * kotlin.math.cos(angle)
-        val y = centerY + r * kotlin.math.sin(angle)
+        val x = centerX + r * cos(angle)
+        val y = centerY + r * sin(angle)
 
         if (i == 0) {
             path.moveTo(x, y)
