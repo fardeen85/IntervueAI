@@ -2,6 +2,7 @@
 agp = "8.10.0"
 koinAndroid = "4.1.0"
 koinAndroidxCompose = "4.1.0"
+koinViewmodel = "4.1.0"
 koinCore = "4.1.0"
 kotlin = "2.0.0"
 coreKtx = "1.16.0"
@@ -29,6 +30,7 @@ uiTextGoogleFonts = "1.8.3"
 
 room = "2.7.0"
 roomCompiler = "2.7.0"
+adaptive = "1.1.0"
 [libraries]
 androidx-compose-adaptive = { module = "androidx.compose.material3.adaptive:adaptive" }
 androidx-compose-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout" }
@@ -50,6 +52,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3",
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koinAndroidxCompose" }
+koin-viewmodel = { module = "io.insert-koin:koin-androidx-viewmodel", version.ref = "koinCore" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koinCore" }
 ktor-client = {module="io.ktor:ktor-client-core", version.ref="ktor_version"}
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktorClientLogging" }
@@ -70,6 +73,7 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
+androidx-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "adaptive" }
 
 
 [plugins]

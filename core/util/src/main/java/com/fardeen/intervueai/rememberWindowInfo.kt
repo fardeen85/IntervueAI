@@ -3,8 +3,9 @@ package com.fardeen.intervueai
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 
+/*
 @Composable
-fun rememberWindowInfo():WindowInfo{
+fun rememberWindowInfo(): WindowInfo{
 
     val configuration = LocalConfiguration.current
     return WindowInfo(
@@ -57,3 +58,4 @@ fun mockWindowInfo(windowType: WindowType = WindowType.Compact): WindowInfo {
         }
     )
 }
+*/

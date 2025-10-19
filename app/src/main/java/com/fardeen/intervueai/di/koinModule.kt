@@ -3,6 +3,7 @@ package com.fardeen.intervueai.di
 
 import com.fardeen.intervueai.GeminiRepositoryImpl
 import com.fardeen.intervueai.HomeScreenViewModel
+import com.fardeen.intervueai.InterviewChatViewModel
 import com.fardeen.intervueai.LocalRepositoryImpl
 import com.fardeen.intervueai.NetworkStatusViewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -42,6 +43,7 @@ val appmodule = module {
     factory { SaveLocalChatUseCase(get()) }
     viewModel{SelectTopicViewModel(get())}
     viewModel { createChatMetaViewModel(get(), get()) }
+    viewModel { InterviewChatViewModel(get(),get()) }
 
 
 

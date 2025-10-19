@@ -34,6 +34,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,13 +58,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.window.core.layout.WindowWidthSizeClass
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.fardeen.intervueai.WindowType
-import com.fardeen.intervueai.rememberWindowInfo
 import com.fardeen.intevueai.model.ChatsListingModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -115,39 +115,10 @@ fun HeaderSection(onClick: () -> Unit) {
 @Composable
 fun MainSection(title: MutableState<String>, description: MutableState<String>) {
 
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    when(windowSizeClass.windowWidthSizeClass){
 
-    val windowinfo = rememberWindowInfo()
-    when(windowinfo.screenWidthInfo){
-
-        is WindowType.Compact -> {
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = title.value,
-                    onValueChange = { title.value = it },
-                    label = { Text("Chat Title") },
-                    placeholder = { Text("Enter chat title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = description.value,
-                    onValueChange = { description.value = it },
-                    label = { Text("Description") },
-                    placeholder = { Text("Enter short description") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp),
-                    maxLines = 4
-                )
-            }
-        }
-        is WindowType.Medium ->   {
-
+         WindowWidthSizeClass.COMPACT -> {
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -174,7 +145,35 @@ fun MainSection(title: MutableState<String>, description: MutableState<String>) 
                 )
             }
         }
-        is WindowType.Expanded ->  {
+         WindowWidthSizeClass.MEDIUM ->   {
+
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = title.value,
+                    onValueChange = { title.value = it },
+                    label = { Text("Chat Title") },
+                    placeholder = { Text("Enter chat title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = description.value,
+                    onValueChange = { description.value = it },
+                    label = { Text("Description") },
+                    placeholder = { Text("Enter short description") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp),
+                    maxLines = 4
+                )
+            }
+        }
+         WindowWidthSizeClass.EXPANDED ->  {
 
 
             Row(

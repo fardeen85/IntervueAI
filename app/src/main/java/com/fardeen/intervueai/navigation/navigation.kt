@@ -23,13 +23,13 @@ import com.fardeen.intervueai.HomeScreenRoot
 import com.fardeen.intervueai.SelectTopicScreenRoot
 import com.fardeen.intervueai.SelectTopicViewModel
 import com.fardeen.intervueai.createchatMeta.presentation.CreateChatMetaScreenRoot
+import com.fardeen.intervueai.interviwChatRootScreen
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun mainNavigation() {
 
     val backstack = remember { mutableStateListOf<NavigationRoutes>(Home) }
-    var showSplash by remember { mutableStateOf(false) }
     val motionScheme = MaterialTheme.motionScheme
 
     NavDisplay(
@@ -56,7 +56,7 @@ fun mainNavigation() {
 
             entry<Home> { entry ->
 
-                showSplash = false
+
                 HomeScreenRoot {
                     backstack.add(SelectTopic)
                 }
@@ -73,6 +73,10 @@ fun mainNavigation() {
                 CreateChatMetaScreenRoot(){
                     backstack.add(chatScreen)
                 }
+            }
+
+            entry<chatScreen>{entry->
+                interviwChatRootScreen()
             }
 
 

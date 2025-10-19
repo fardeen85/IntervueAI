@@ -1,6 +1,7 @@
 package com.fardeen.intervueai
 
 import android.graphics.drawable.Icon
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.animation.slideInHorizontally
@@ -115,11 +116,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fardeen.intervueai.interviewchat.R
+import com.fardeen.intevueai.model.ChatModel
+import com.fardeen.intevueai.model.RequestState
+import org.koin.compose.viewmodel.koinViewModel
 
 data class Message(
     val content: String,
@@ -151,12 +156,38 @@ fun interviwChatRootScreen(){
 
     val navController = rememberSupportingPaneScaffoldNavigator<DiscussionPane>()
     val scope = rememberCoroutineScope()
+    val viewModel : InterviewChatViewModel = koinViewModel()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.getLocalChatData()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+                is UiEvent.Navigate -> {
+                   // navController.navigate(event.route)
+                }
+                UiEvent.ShowSuccessDialog -> { /* show dialog */ }
+            }
+        }
+    }
+
+
+
+
+
+
     NavigableSupportingPaneScaffold(
 
         navigator = navController,
         supportingPane = {
 
-            SupportingPane()
+            SupportingPane(viewModel)
         },
         mainPane = {
 
@@ -168,7 +199,7 @@ fun interviwChatRootScreen(){
                 /*if (navController.scaffoldValue[SupportingPaneScaffoldRole.Supporting] == PaneAdaptedValue.Hidden) {
                     MainPane()
                 }*/
-                MainPane(){
+                MainPane(viewModel = viewModel){
 
                     if (navController.scaffoldValue[SupportingPaneScaffoldRole.Supporting] == PaneAdaptedValue.Hidden){
 
@@ -187,7 +218,7 @@ fun interviwChatRootScreen(){
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun ThreePaneScaffoldPaneScope.MainPane(onclick:()-> Unit){
+fun ThreePaneScaffoldPaneScope.MainPane(viewModel: InterviewChatViewModel,onclick:()-> Unit){
 
     val messages = remember {
         listOf(
@@ -261,8 +292,55 @@ fun ThreePaneScaffoldPaneScope.MainPane(onclick:()-> Unit){
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun ThreePaneScaffoldPaneScope.SupportingPane(){
+fun ThreePaneScaffoldPaneScope.SupportingPane(
+    viewModel: InterviewChatViewModel
+){
 
+
+    val chatState by viewModel.chatData.collectAsState(initial = emptyList<ChatModel>())
+
+    when (chatState) {
+        is RequestState.Loading -> {
+            LoadingView()
+        }
+        is RequestState.Error -> {
+            ErrorView((chatState as RequestState.Error).message)
+        }
+        is RequestState.Success<*> -> {
+            val chats = (chatState as RequestState.Success<List<ChatModel>>).data
+            ChatList(chats) // 👈 handle your received data here
+        }
+        null -> {
+
+            LoadingView()
+        }
+    }
+
+
+
+}
+
+@Composable
+fun ErrorView(error: String) {
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+        Text("Oops!"+error)
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun LoadingView() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+        CircularWavyProgressIndicator()
+    }
+}
+
+
+@Composable
+fun ChatList(chats: List<ChatModel>){
     // Sidebar for large screens
     Surface(
         modifier = Modifier
@@ -336,7 +414,6 @@ fun ThreePaneScaffoldPaneScope.SupportingPane(){
             }
         }
     }
-
 }
 @Composable
 fun MessagingScreenWithWindowSize(windowInfo: WindowInfo) {

@@ -104,6 +104,8 @@ dependencies {
     implementation(project(":features:selecttopic"))
     implementation(project(":features:createChatMeta"))
     implementation(project(":domain"))
+    implementation(project(":features:interviewchat"))
+
 
 
 

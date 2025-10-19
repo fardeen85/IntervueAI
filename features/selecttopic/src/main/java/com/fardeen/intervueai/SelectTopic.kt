@@ -36,6 +36,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.window.core.layout.WindowWidthSizeClass
 import com.fardeen.intervueai.components.GradientButton
 import com.fardeen.intevueai.model.RequestState
 import org.koin.compose.viewmodel.koinViewModel
@@ -69,7 +71,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewModel<SelectTopicViewModel>(), onClick:()->Unit){
 
-    val windowinfo = rememberWindowInfo()
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -134,10 +136,10 @@ fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewMo
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
 
 
-        when(windowinfo.screenWidthInfo){
-            WindowType.Compact -> SelectTopicScreenContent(selectTopicViewModel,isloading)
-            WindowType.Medium -> SelectTopicScreenContent(selectTopicViewModel,isloading)
-            WindowType.Expanded -> SelectTopicScreenContentLarge(selectTopicViewModel,isloading)
+        when(windowSizeClass.windowWidthSizeClass){
+            WindowWidthSizeClass.COMPACT -> SelectTopicScreenContent(selectTopicViewModel,isloading)
+            WindowWidthSizeClass.MEDIUM-> SelectTopicScreenContent(selectTopicViewModel,isloading)
+            WindowWidthSizeClass.EXPANDED -> SelectTopicScreenContentLarge(selectTopicViewModel,isloading)
         }
 
 
