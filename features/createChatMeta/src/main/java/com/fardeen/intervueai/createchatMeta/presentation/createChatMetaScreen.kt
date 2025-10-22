@@ -31,14 +31,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -58,6 +64,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -65,6 +72,10 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.fardeen.intevueai.model.ChatsListingModel
+import com.fardeen.intevueai.model.RequestState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -75,10 +86,58 @@ fun CreateChatMetaScreenRoot(onClick: () -> Unit) {
     val viewModel : createChatMetaViewModel = koinViewModel()
     var title = remember { mutableStateOf("") }
     var description = remember { mutableStateOf("") }
+    val chatDataSaveState  by  viewModel.addChatListingData.collectAsStateWithLifecycle(initialValue = "error")
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val state = chatDataSaveState
+    val context = LocalContext.current
+    // 👇 This ensures Snackbar shows whenever the errorMessage changes
+    LaunchedEffect(errorMessage) {
+        if (errorMessage.isNotEmpty()) {
+            snackbarHostState.showSnackbar(errorMessage)
+        }
+    }
+
+
+
+    LaunchedEffect(state) {
+
+        when(state){
+
+            is RequestState.Loading -> {
+                isLoading = true
+            }
+            is RequestState.Success<*> -> {
+
+               if ( (state.data as String).lowercase().equals("success")){
+                   onClick()
+               }
+
+            }
+            is RequestState.Error -> {
+                val error = state.message
+                errorMessage = error
+            }
+            else -> {
+
+
+                errorMessage = "something went wrong"
+            }
+
+        }
+
+    }
+
+
 
     Scaffold(
         topBar = { HeaderSection(onClick) },
-        bottomBar = { BottomSection(title,description,viewModel) }
+        bottomBar = { BottomSection(title,description,viewModel,isLoading) },
+        snackbarHost = {
+
+            SnackbarHost(hostState = snackbarHostState)
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -207,8 +266,9 @@ fun MainSection(title: MutableState<String>, description: MutableState<String>) 
 
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun BottomSection(title:MutableState<String>, description:MutableState<String>, viewModel: createChatMetaViewModel) {
+fun BottomSection(title:MutableState<String>, description:MutableState<String>, viewModel: createChatMetaViewModel,isLoading: Boolean) {
     Surface(
         tonalElevation = 4.dp,
         shadowElevation = 8.dp
@@ -218,23 +278,32 @@ fun BottomSection(title:MutableState<String>, description:MutableState<String>, 
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Button(
-                onClick = {
-                    viewModel.saveChatListingData(
-                    ChatsListingModel(
-                        title = title.value,
-                        description = description.value
-                    ))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "Create Chat",
-                    style = MaterialTheme.typography.titleMedium
-                )
+
+            if(!isLoading) {
+                Button(
+                    onClick = {
+                        viewModel.saveChatListingData(
+                            ChatsListingModel(
+                                title = title.value,
+                                description = description.value
+                            )
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Create Chat",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+            else{
+                Box(contentAlignment = Alignment.Center){
+                    CircularWavyProgressIndicator()
+                }
             }
         }
     }

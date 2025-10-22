@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -29,7 +30,7 @@ import com.fardeen.intervueai.interviwChatRootScreen
 @Composable
 fun mainNavigation() {
 
-    val backstack = remember { mutableStateListOf<NavigationRoutes>(Home) }
+    val backstack = rememberSaveable { mutableStateListOf<NavigationRoutes>(Home) }
     val motionScheme = MaterialTheme.motionScheme
 
     NavDisplay(

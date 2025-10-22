@@ -24,7 +24,7 @@ class createChatMetaViewModel(val useCase1: SaveChatListingDataUseCase, val useC
 
 
     private val _addChatListingData = MutableStateFlow< RequestState<String?>?>(null)
-    private val addChatListingData = _addChatListingData.asSharedFlow()
+    val addChatListingData = _addChatListingData.asSharedFlow()
 
 
     fun saveChatListingData(chatListingData: ChatsListingModel) {
