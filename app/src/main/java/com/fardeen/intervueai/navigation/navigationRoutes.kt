@@ -1,13 +1,17 @@
 package com.fardeen.intervueai.navigation
 
+import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
-interface NavigationRoutes
 
 @Serializable
-object Home : NavigationRoutes
-object SelectTopic:NavigationRoutes
+object Home : NavKey
 
-object createChatMeta:NavigationRoutes
+@Serializable
+object SelectTopic:NavKey
 
-object chatScreen : NavigationRoutes
+@Serializable
+object createChatMeta:NavKey
+
+@Serializable
+object chatScreen : NavKey

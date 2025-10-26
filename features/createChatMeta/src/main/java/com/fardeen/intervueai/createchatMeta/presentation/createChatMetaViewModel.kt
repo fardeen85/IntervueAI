@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.fardeen.intevueai.model.ChatsListingModel
 import com.fardeen.intevueai.model.GeminiResponseModel
 import com.fardeen.intevueai.model.RequestState
+import com.fardeen.intevueai.usecases.FetchChatListingDataUseCase
 import com.fardeen.intevueai.usecases.FetchLocalDataUseCase
 import com.fardeen.intevueai.usecases.SaveChatListingDataUseCase
 import kotlinx.coroutines.flow.Flow
@@ -18,9 +19,6 @@ import kotlinx.coroutines.launch
 
 class createChatMetaViewModel(val useCase1: SaveChatListingDataUseCase, val useCase2: FetchLocalDataUseCase) : ViewModel(){
 
-
-    private val _chatLisingData = MutableStateFlow<RequestState<ChatsListingModel?>?>(null)
-    val chatLisingData = _chatLisingData.asStateFlow()
 
 
     private val _addChatListingData = MutableStateFlow< RequestState<String?>?>(null)
@@ -39,6 +37,15 @@ class createChatMetaViewModel(val useCase1: SaveChatListingDataUseCase, val useC
                     _addChatListingData.value = RequestState.Success(data)
                 }
         }
+
+    }
+
+
+
+
+    fun clearState(){
+
+        _addChatListingData.value = null
 
     }
 

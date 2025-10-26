@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.androidx.compose.adaptive.navigation)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.android)
+    implementation(libs.accompanist.placeholder.material)
     implementation(project(":core:util"))
     implementation(project(":data"))
     implementation(project(":domain"))

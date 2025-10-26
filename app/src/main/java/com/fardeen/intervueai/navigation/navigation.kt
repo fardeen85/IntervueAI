@@ -16,21 +16,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.fardeen.intervueai.HomeScreenRoot
+import com.fardeen.intervueai.InterviewChatRootScreen
 import com.fardeen.intervueai.SelectTopicScreenRoot
 import com.fardeen.intervueai.SelectTopicViewModel
 import com.fardeen.intervueai.createchatMeta.presentation.CreateChatMetaScreenRoot
-import com.fardeen.intervueai.interviwChatRootScreen
+
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun mainNavigation() {
 
-    val backstack = rememberSaveable { mutableStateListOf<NavigationRoutes>(Home) }
+    val backstack = rememberNavBackStack (Home)
     val motionScheme = MaterialTheme.motionScheme
 
     NavDisplay(
@@ -65,9 +68,10 @@ fun mainNavigation() {
             }
 
             entry<SelectTopic> { entry ->
-                SelectTopicScreenRoot() {
-                    backstack.add(createChatMeta)
-                }
+                SelectTopicScreenRoot(
+                    onClick = {  backstack.add(createChatMeta)},
+                    onClick1 = {  backstack.add(chatScreen)}
+                )
             }
 
             entry<createChatMeta>{entry->
@@ -77,7 +81,7 @@ fun mainNavigation() {
             }
 
             entry<chatScreen>{entry->
-                interviwChatRootScreen()
+                InterviewChatRootScreen()
             }
 
 

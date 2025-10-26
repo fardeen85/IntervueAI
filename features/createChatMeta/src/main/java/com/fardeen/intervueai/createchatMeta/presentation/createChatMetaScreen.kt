@@ -50,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -91,7 +92,7 @@ fun CreateChatMetaScreenRoot(onClick: () -> Unit) {
     var errorMessage by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val state = chatDataSaveState
-    val context = LocalContext.current
+
     // 👇 This ensures Snackbar shows whenever the errorMessage changes
     LaunchedEffect(errorMessage) {
         if (errorMessage.isNotEmpty()) {
@@ -100,34 +101,64 @@ fun CreateChatMetaScreenRoot(onClick: () -> Unit) {
     }
 
 
+    LaunchedEffect(chatDataSaveState) {
+        snapshotFlow { state }
+            .collect { currentState ->
+                when (currentState) {
+                    is RequestState.Loading -> {
+                        isLoading = true
+                    }
 
-    LaunchedEffect(state) {
+                    is RequestState.Success<*> -> {
+                        val result = currentState.data as? String
+                        if (result.equals("success", ignoreCase = true)) {
+                            onClick()
+                            viewModel.clearState()
+                        }
+                    }
 
-        when(state){
+                    is RequestState.Error -> {
+                        errorMessage = currentState.message
+                    }
 
-            is RequestState.Loading -> {
-                isLoading = true
+                    else -> {
+                        errorMessage = "Something went wrong"
+                    }
+                }
             }
-            is RequestState.Success<*> -> {
-
-               if ( (state.data as String).lowercase().equals("success")){
-                   onClick()
-               }
-
-            }
-            is RequestState.Error -> {
-                val error = state.message
-                errorMessage = error
-            }
-            else -> {
-
-
-                errorMessage = "something went wrong"
-            }
-
-        }
-
     }
+
+
+
+    /*
+        LaunchedEffect(state) {
+
+            when(state){
+
+                is RequestState.Loading -> {
+                    isLoading = true
+                }
+                is RequestState.Success<*> -> {
+
+                   if ( (state.data as String).lowercase().equals("success")){
+                       onClick()
+                       viewModel.clearState()
+                   }
+
+                }
+                is RequestState.Error -> {
+                    val error = state.message
+                    errorMessage = error
+                }
+                else -> {
+
+
+                    errorMessage = "something went wrong"
+                }
+
+            }
+
+        }*/
 
 
 
@@ -235,9 +266,9 @@ fun MainSection(title: MutableState<String>, description: MutableState<String>) 
          WindowWidthSizeClass.EXPANDED ->  {
 
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
                     value = title.value,
@@ -301,7 +332,7 @@ fun BottomSection(title:MutableState<String>, description:MutableState<String>, 
                 }
             }
             else{
-                Box(contentAlignment = Alignment.Center){
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()){
                     CircularWavyProgressIndicator()
                 }
             }

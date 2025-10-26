@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,56 +63,109 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.fardeen.intervueai.components.GradientButton
+import com.fardeen.intevueai.model.ChatsListingModel
 import com.fardeen.intevueai.model.RequestState
+import kotlinx.coroutines.flow.first
 import org.koin.compose.viewmodel.koinViewModel
 
 
 @Composable
-fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewModel<SelectTopicViewModel>(), onClick:()->Unit){
+fun SelectTopicScreenRoot(
+    selectTopicViewModel: SelectTopicViewModel = koinViewModel<SelectTopicViewModel>(),
+    onClick: () -> Unit,
+    onClick1: () -> Unit
+) {
 
     val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showSelectChoiceModel by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
 
-    val resultState  by  selectTopicViewModel.verifyTopic.collectAsStateWithLifecycle()
+    val resultState by selectTopicViewModel.verifyTopic.collectAsStateWithLifecycle()
 
     var isloading = resultState is RequestState.Loading
     var errorMessage by remember { mutableStateOf("") }
-    val state = resultState
 
 
+    var showContinueButton by remember { mutableStateOf(false) }
+    val chatListState by selectTopicViewModel.chatLisingData.collectAsStateWithLifecycle()
+    val state1 = chatListState
 
+    LaunchedEffect(Unit) {
 
-    LaunchedEffect(key1 = state) {
-        when(state){
+        selectTopicViewModel.getChatListingData()
+    }
 
-            is RequestState.Success -> {
-                //navigate
-                Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
-                onClick()
+    LaunchedEffect(state1) {
+
+        when (state1) {
+
+            is RequestState.Loading -> {}
+            is RequestState.Success<*> -> {
+                val data = state1.data as List<ChatsListingModel>
+                if (data.isNotEmpty()) {
+                    showContinueButton = true
+                } else {
+                    showContinueButton = false
+                }
             }
+
             is RequestState.Error -> {
 
-                showBottomSheet = true
-                errorMessage = state.message.ifEmpty { "Something went wrong" }
-                Log.d("TAG",errorMessage)
-
-
+                showContinueButton = false
             }
-            is RequestState.Loading -> {
 
-                Log.d("TAG","loading Screen")
+            else -> {
+
+                showContinueButton = false
             }
-            null -> {}
         }
 
-
     }
+
+
+    val combinedState by selectTopicViewModel.combinedState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(combinedState) {
+        val gemini = combinedState.geminiResult
+        val chatList = combinedState.chatListResult
+
+        when (gemini) {
+            is RequestState.Success -> {
+                if (gemini.data != null) {
+
+                    val reply: String = gemini?.data?.candidates?.get(0)?.content?.parts?.get(0)?.text?:""
+                    if(reply.contains("Y")) {
+                        onClick()
+                    }
+                    else{
+                        Toast.makeText(context, "This is not a valid topic Please try again with different topic", Toast.LENGTH_SHORT).show()
+                    }
+
+                    selectTopicViewModel.resetCombinedState()
+                }
+            }
+
+            is RequestState.Error -> {
+                showBottomSheet = true
+                errorMessage = gemini.message.ifEmpty { "Something went wrong" }
+            }
+
+            is RequestState.Loading -> {
+                Log.d("TAG", "Loading...")
+            }
+
+            else -> Unit
+        }
+    }
+
 
 
     BottomSheetDialog(
@@ -117,17 +173,17 @@ fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewMo
         errorMessage,
         onRetru = {
             showBottomSheet = false
-            Log.d("TAG","retry clicked")
+            Log.d("TAG", "retry clicked")
             // Retry logic
         },
         onOK = {
             showBottomSheet = false
-            Log.d("TAG","ok clicked")
+            Log.d("TAG", "ok clicked")
             // OK logic
         },
         onDismiss = {
             showBottomSheet = false
-            Log.d("TAG","dismiss clicked")
+            Log.d("TAG", "dismiss clicked")
             // Dismiss logic
         }
 
@@ -136,13 +192,49 @@ fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewMo
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
 
 
-        when(windowSizeClass.windowWidthSizeClass){
-            WindowWidthSizeClass.COMPACT -> SelectTopicScreenContent(selectTopicViewModel,isloading)
-            WindowWidthSizeClass.MEDIUM-> SelectTopicScreenContent(selectTopicViewModel,isloading)
-            WindowWidthSizeClass.EXPANDED -> SelectTopicScreenContentLarge(selectTopicViewModel,isloading)
+        when (windowSizeClass.windowWidthSizeClass) {
+            WindowWidthSizeClass.COMPACT -> SelectTopicScreenContent(
+                selectTopicViewModel,
+                isloading,
+                showContinueButton
+            ) {
+                onClick1()
+            }
+
+            WindowWidthSizeClass.MEDIUM -> SelectTopicScreenContent(
+                selectTopicViewModel,
+                isloading,
+                showContinueButton
+            ) {
+                onClick1()
+            }
+
+            WindowWidthSizeClass.EXPANDED -> SelectTopicScreenContentLarge(
+                selectTopicViewModel,
+                isloading,
+                showContinueButton
+            ) {
+                onClick1()
+            }
         }
 
 
+    }
+}
+
+
+suspend fun checkIfDataExists(viewModel: SelectTopicViewModel): Boolean {
+    val result = viewModel.chatListingData.first() // only take first emission
+
+    return try {
+        when (result) {
+            is RequestState.Success<List<ChatsListingModel>> -> result.data.isEmpty()
+            is RequestState.Error -> false
+            is RequestState.Loading -> false
+            else -> false
+        }
+    } catch (e: Exception) {
+        return false
     }
 }
 
@@ -151,17 +243,18 @@ fun SelectTopicScreenRoot(selectTopicViewModel: SelectTopicViewModel= koinViewMo
 @Composable
 fun SelectTopicScreenContent(
     selectTopicViewModel: SelectTopicViewModel,
-    isloading: Boolean
-){
+    isloading: Boolean,
+    showContinueButton: Boolean,
+    onClick1: () -> Unit
+) {
 
     var textfieldValue by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var context = LocalContext.current
 
 
-
     val imagesizeTransform by animateFloatAsState(
-        targetValue = if (expanded) 1.5f else 1f,
+        targetValue = if (expanded) 1f else .5f,
         animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
     )
 
@@ -170,14 +263,18 @@ fun SelectTopicScreenContent(
         expanded = true
     }
 
-    Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally){
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
 
 
-        Image(painter = painterResource(com.fardeen.intervueai.select_topic.R.drawable.undraw_interview_yz52),
+        Image(
+            painter = painterResource(com.fardeen.intervueai.select_topic.R.drawable.undraw_interview_yz52),
             modifier = Modifier
                 .weight(imagesizeTransform)
                 .clip(RoundedCornerShape(bottomStart = 50.dp, bottomEnd = 50.dp))
-                .animateContentSize() ,
+                .animateContentSize(),
             contentDescription = "Localized description",
             contentScale = ContentScale.Fit
         )
@@ -185,12 +282,14 @@ fun SelectTopicScreenContent(
 
         Column(modifier = Modifier.weight(1f)) {
 
-            Text("Write which topic you want to start practicing", style = TextStyle(
-                fontStyle = FontStyle.Normal,
-                fontWeight = FontWeight.W700,
-                fontSize = 32.sp,
-                textAlign = TextAlign.Center
-            ), modifier = Modifier.padding(16.dp))
+            Text(
+                "Write which topic you want to start practicing", style = TextStyle(
+                    fontStyle = FontStyle.Normal,
+                    fontWeight = FontWeight.W700,
+                    fontSize = 32.sp,
+                    textAlign = TextAlign.Center
+                ), modifier = Modifier.padding(16.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -210,35 +309,42 @@ fun SelectTopicScreenContent(
             Spacer(modifier = Modifier.height(16.dp))
 
 
-            if(!isloading) {
+            if (!isloading) {
 
-                GradientButton(onClick = {
-
-
-                    if (textfieldValue.isNotEmpty()) {
-
-                        selectTopicViewModel.verifyTopicByGemini(textfieldValue)
-                       // selectTopicViewModel.f()
+                GradientButton(
+                    onClick = {
 
 
-                    }
+                        if (textfieldValue.isNotEmpty()) {
 
-                    else{
+                            selectTopicViewModel.verifyTopicByGemini(textfieldValue)
+                            // selectTopicViewModel.f()
 
-                        Toast.makeText(context, "Please enter a topic", Toast.LENGTH_SHORT).show()
-                    }
-
-
-
-                                         },
+                        } else {
+                            Toast.makeText(context, "Please enter a topic", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
                         .padding(16.dp),
                     text = "Start Practicing"
                 )
-            }
-            else{
+
+
+                if (showContinueButton) {
+                    GradientButton(
+                        onClick = { onClick1() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .padding(16.dp),
+                        text = "Already have interviews left"
+                    )
+                }
+
+            } else {
 
                 Box(modifier = Modifier.fillMaxWidth()) {
 
@@ -253,17 +359,27 @@ fun SelectTopicScreenContent(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SelectTopicScreenContentLarge(selectTopicViewModel: SelectTopicViewModel,isloading:Boolean){
+fun SelectTopicScreenContentLarge(
+    selectTopicViewModel: SelectTopicViewModel,
+    isloading: Boolean,
+    showContinueButton: Boolean,
+    onClick1: () -> Unit
+) {
 
     var textfieldValue by remember { mutableStateOf("") }
-    Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
 
 
-        Image(painter = painterResource(com.fardeen.intervueai.select_topic.R.drawable.undraw_interview_yz52),
+        Image(
+            painter = painterResource(com.fardeen.intervueai.select_topic.R.drawable.undraw_interview_yz52),
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(bottomStart = 50.dp, bottomEnd = 50.dp))
-                .animateContentSize() ,
+                .animateContentSize(),
             contentDescription = "Localized description",
             contentScale = ContentScale.Fit
         )
@@ -271,12 +387,14 @@ fun SelectTopicScreenContentLarge(selectTopicViewModel: SelectTopicViewModel,isl
 
         Column(modifier = Modifier.weight(1f)) {
 
-            Text("Write which topic you want to start practicing", style = TextStyle(
-                fontStyle = FontStyle.Normal,
-                fontWeight = FontWeight.W700,
-                fontSize = 32.sp,
-                textAlign = TextAlign.Center
-            ), modifier = Modifier.padding(16.dp))
+            Text(
+                "Write which topic you want to start practicing", style = TextStyle(
+                    fontStyle = FontStyle.Normal,
+                    fontWeight = FontWeight.W700,
+                    fontSize = 32.sp,
+                    textAlign = TextAlign.Center
+                ), modifier = Modifier.padding(16.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -295,21 +413,33 @@ fun SelectTopicScreenContentLarge(selectTopicViewModel: SelectTopicViewModel,isl
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if(!isloading) {
+            if (!isloading) {
 
-                GradientButton(onClick = {
+                GradientButton(
+                    onClick = {
 
-                    selectTopicViewModel.verifyTopicByGemini(textfieldValue)
+                        selectTopicViewModel.verifyTopicByGemini(textfieldValue)
 
-                },
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
                         .padding(16.dp),
                     text = "Start Practicing"
                 )
-            }
-            else{
+
+
+                if (showContinueButton) {
+                    GradientButton(
+                        onClick = { onClick1() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .padding(16.dp),
+                        text = "Already have interviews left"
+                    )
+                }
+            } else {
 
                 Box(modifier = Modifier.fillMaxWidth()) {
 
@@ -326,38 +456,44 @@ fun SelectTopicScreenContentLarge(selectTopicViewModel: SelectTopicViewModel,isl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomSheetDialog( showSheet:Boolean,message:String,onRetru: () -> Unit, onOK: () -> Unit,onDismiss:()->Unit) {
+fun BottomSheetDialog(
+    showSheet: Boolean,
+    message: String,
+    onRetru: () -> Unit,
+    onOK: () -> Unit,
+    onDismiss: () -> Unit
+) {
     val modalBottomSheetState = rememberModalBottomSheetState()
 
     if (showSheet) {
 
 
-    ModalBottomSheet(
-        onDismissRequest = { onDismiss() },
-        sheetState = modalBottomSheetState,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        ModalBottomSheet(
+            onDismissRequest = { onDismiss() },
+            sheetState = modalBottomSheetState,
         ) {
-            Text(message, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(onClick = { onOK() }, modifier = Modifier.padding(end = 8.dp)) {
-                    Text("OK")
-                }
+                Text(message, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(onClick = { onOK() }, modifier = Modifier.padding(end = 8.dp)) {
+                        Text("OK")
+                    }
 
-                Button(onClick = { onRetru() }, modifier = Modifier.padding(end = 8.dp)) {
-                    Text("Retru")
-                }
+                    Button(onClick = { onRetru() }, modifier = Modifier.padding(end = 8.dp)) {
+                        Text("Retru")
+                    }
 
+                }
             }
-        }
         }
     }
 }
@@ -366,7 +502,7 @@ fun BottomSheetDialog( showSheet:Boolean,message:String,onRetru: () -> Unit, onO
 @Composable
 @Preview(showBackground = true)
 fun PreviewSelectTopicScreen() {
-    SelectTopicScreenRoot {  }
+    SelectTopicScreenRoot(onClick = {}, onClick1 = {})
 
 }
 
@@ -374,5 +510,5 @@ fun PreviewSelectTopicScreen() {
 @TabletPreview
 @Preview(showBackground = true)
 fun PreviewSelectTopicScreenLarge() {
-    SelectTopicScreenRoot { }
+    SelectTopicScreenRoot(onClick = {}, onClick1 = {})
 }

@@ -1,14 +1,8 @@
 package com.fardeen.intervueai
 
-import android.graphics.drawable.Icon
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,17 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,51 +28,28 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource // For dummy images
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -91,39 +57,29 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.sin
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
-import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
-import androidx.compose.material3.adaptive.layout.SupportingPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldPaneScope
-import androidx.compose.material3.adaptive.navigation.NavigableSupportingPaneScaffold
-import androidx.compose.material3.adaptive.navigation.rememberSupportingPaneScaffoldNavigator
-import androidx.compose.runtime.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.*
+import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fardeen.intervueai.interviewchat.R
 import com.fardeen.intevueai.model.ChatModel
+import com.fardeen.intevueai.model.ChatsListingModel
 import com.fardeen.intevueai.model.RequestState
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.material.placeholder
+import com.google.accompanist.placeholder.material.shimmer
+import kotlinx.coroutines.Job
 import org.koin.compose.viewmodel.koinViewModel
 
 data class Message(
@@ -152,16 +108,17 @@ sealed interface DiscussionPane {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun interviwChatRootScreen(){
+fun InterviewChatRootScreen() {
 
-    val navController = rememberSupportingPaneScaffoldNavigator<DiscussionPane>()
+    val navController = rememberListDetailPaneScaffoldNavigator()
     val scope = rememberCoroutineScope()
-    val viewModel : InterviewChatViewModel = koinViewModel()
+    val viewModel: InterviewChatViewModel = koinViewModel()
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.getLocalChatData()
     }
+
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -170,50 +127,42 @@ fun interviwChatRootScreen(){
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                 }
                 is UiEvent.Navigate -> {
-                   // navController.navigate(event.route)
+                    // navController.navigate(event.route) // Optional
                 }
                 UiEvent.ShowSuccessDialog -> { /* show dialog */ }
             }
         }
     }
 
+    // ✅ Main scaffold
+    ListDetailPaneScaffold(
+        directive = PaneScaffoldDirective.Default,
+        value = navController.scaffoldValue,
 
-
-
-
-
-    NavigableSupportingPaneScaffold(
-
-        navigator = navController,
-        supportingPane = {
-
-            SupportingPane(viewModel)
-        },
-        mainPane = {
-
-            AnimatedPane(
-                modifier = Modifier
-                    .safeContentPadding()
-
-            ){
-                /*if (navController.scaffoldValue[SupportingPaneScaffoldRole.Supporting] == PaneAdaptedValue.Hidden) {
-                    MainPane()
-                }*/
-                MainPane(viewModel = viewModel){
-
-                    if (navController.scaffoldValue[SupportingPaneScaffoldRole.Supporting] == PaneAdaptedValue.Hidden){
-
-                        scope.launch {
-                            navController.navigateTo(SupportingPaneScaffoldRole.Supporting)
-                        }
-
-                    }
+        listPane = {
+            SupportingPane(viewModel = viewModel) {
+                // When an item in the list is clicked, go to detail pane
+                scope.launch {
+                    navController.navigateTo(ListDetailPaneScaffoldRole.Detail)
                 }
             }
         },
 
+        detailPane = {
+            AnimatedPane(
+                modifier = Modifier.safeContentPadding()
+            ) {
+                MainPane(viewModel = viewModel) {
+                    // Handle back navigation
+                    scope.launch {
+                        navController.navigateBack()
+                    }
+                }
+            }
+        }
     )
 }
+
 
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -293,22 +242,31 @@ fun ThreePaneScaffoldPaneScope.MainPane(viewModel: InterviewChatViewModel,onclic
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun ThreePaneScaffoldPaneScope.SupportingPane(
-    viewModel: InterviewChatViewModel
+    viewModel: InterviewChatViewModel,
+    function: () -> Job
 ){
 
 
-    val chatState by viewModel.chatData.collectAsState(initial = emptyList<ChatModel>())
+    val chatState by viewModel.chatListData.collectAsState(initial = emptyList<ChatModel>())
+    var isLoading by rememberSaveable { mutableStateOf(true) }
+
+
 
     when (chatState) {
         is RequestState.Loading -> {
-            LoadingView()
+            isLoading = true
         }
         is RequestState.Error -> {
+            isLoading = false
             ErrorView((chatState as RequestState.Error).message)
         }
         is RequestState.Success<*> -> {
-            val chats = (chatState as RequestState.Success<List<ChatModel>>).data
-            ChatList(chats) // 👈 handle your received data here
+            isLoading = false
+            val chats = (chatState as RequestState.Success<List<ChatsListingModel>>).data
+            ChatListScreen(chats, isLoading){
+
+
+            }
         }
         null -> {
 
@@ -340,6 +298,165 @@ fun LoadingView() {
 
 
 @Composable
+fun ChatListScreen(
+    chats: List<ChatsListingModel>?,
+    isLoading: Boolean,
+    onChatClick: (ChatsListingModel) -> Unit
+) {
+
+    Scaffold { innerPadding->
+
+
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            if (isLoading) {
+                // show 5 shimmer placeholders
+                items(5) {
+                    ChatListItem(chat = null, isLoading = true)
+                }
+            } else {
+                items(chats ?: emptyList()) { chat ->
+                    ChatListItem(chat = chat, onClick = onChatClick)
+                }
+            }
+        }
+    }
+
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatListItem(
+    chat: ChatsListingModel?,
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    onClick: (ChatsListingModel) -> Unit = {}
+) {
+    ListItem(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isLoading && chat != null) {
+                chat?.let { onClick(it) }
+            }
+            .clip(RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        headlineContent = {
+            Text(
+                text = chat?.title ?: "",
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.placeholder(
+                    visible = isLoading,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    highlight = PlaceholderHighlight.shimmer()
+                )
+            )
+        },
+        supportingContent = {
+            Text(
+                text = chat?.description ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.placeholder(
+                    visible = isLoading,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    highlight = PlaceholderHighlight.shimmer()
+                )
+            )
+        },
+        leadingContent = {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .placeholder(
+                        visible = isLoading,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        highlight = PlaceholderHighlight.shimmer()
+                    )
+            ){
+                Image(modifier= Modifier.fillMaxSize(), painter = painterResource(R.drawable.gemini), contentDescription = "")
+            }
+        },
+
+        shadowElevation = 3.dp
+    )
+}
+
+
+
+@Composable
+fun ChatItem(chat: ChatModel) {
+    val isAi = chat.messageOwner.equals("gemini")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = if (isAi) Arrangement.Start else Arrangement.End
+    ) {
+        if (isAi) {
+            // AI side
+            Image(
+                painter = painterResource(id = R.drawable.gemini),
+                contentDescription = "AI Avatar",
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF00BCD4))
+                    .padding(6.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFFE0F7FA), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = chat.message ?: "",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            // User side
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFFDCF8C6), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = chat.message ?: "",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.outline_person_4_24), // Replace with your user image
+                contentDescription = "User Avatar",
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF4CAF50))
+                    .padding(6.dp)
+            )
+        }
+    }
+}
+
+
+
+@Composable
 fun ChatList(chats: List<ChatModel>){
     // Sidebar for large screens
     Surface(
@@ -362,54 +479,11 @@ fun ChatList(chats: List<ChatModel>){
                 modifier = Modifier.padding(vertical = 16.dp)
             )
 
-            repeat(3) { index ->
-                Surface(
-                    color = if (index == 0) Color.White.copy(alpha = 0.2f)
-                    else Color.White.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFF4285F4),
-                                            Color(0xFF9C27B0),
-                                            Color(0xFFE91E63)
-                                        )
-                                    )
-                                )
-                        ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                drawGeminiStar(this)
-                            }
-                        }
+            LazyColumn {
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                itemsIndexed(chats){ index,item->
+                    ChatItem(item)
 
-                        Column {
-                            Text(
-                                text = if (index == 0) "Music night out ✨" else "Chat ${index + 1}",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "Last message preview...",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -417,7 +491,7 @@ fun ChatList(chats: List<ChatModel>){
 }
 @Composable
 fun MessagingScreenWithWindowSize(windowInfo: WindowInfo) {
-    interviwChatRootScreen()
+    InterviewChatRootScreen()
 }
 
 @Composable

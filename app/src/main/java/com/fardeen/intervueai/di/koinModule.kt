@@ -41,9 +41,9 @@ val appmodule = module {
     factory { FetchChatListingDataUseCase(get()) }
     factory { FetchLocalDataUseCase(get()) }
     factory { SaveLocalChatUseCase(get()) }
-    viewModel{SelectTopicViewModel(get())}
+    viewModel{SelectTopicViewModel(get(),get(),get())}
     viewModel { createChatMetaViewModel(get(), get()) }
-    viewModel { InterviewChatViewModel(get(),get()) }
+    viewModel { InterviewChatViewModel(get(),get(),get()) }
 
 
 
