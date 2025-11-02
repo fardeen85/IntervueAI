@@ -81,7 +81,10 @@ fun mainNavigation() {
             }
 
             entry<chatScreen>{entry->
-                InterviewChatRootScreen()
+                InterviewChatRootScreen(){
+
+                    backstack.removeFirst()
+                }
             }
 
 

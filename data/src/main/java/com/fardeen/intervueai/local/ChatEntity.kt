@@ -13,5 +13,7 @@ data class ChatEntity(
     @ColumnInfo(name = "message")
     var message: String = "",
     @ColumnInfo(name = "ownerMessage")
-    var ownerMessage: String = ""
+    var ownerMessage: String = "",
+    @ColumnInfo(name = "chatId")
+    var chatId: Int = 0
 )

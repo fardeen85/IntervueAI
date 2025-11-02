@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-class createChatMetaViewModel(val useCase1: SaveChatListingDataUseCase, val useCase2: FetchLocalDataUseCase) : ViewModel(){
+class createChatMetaViewModel(val useCase1: SaveChatListingDataUseCase) : ViewModel(){
 
 
 

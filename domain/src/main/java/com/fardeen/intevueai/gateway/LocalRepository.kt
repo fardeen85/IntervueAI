@@ -2,11 +2,12 @@ package com.fardeen.intevueai.gateway
 
 import com.fardeen.intevueai.model.ChatModel
 import com.fardeen.intevueai.model.ChatsListingModel
+import com.fardeen.intevueai.model.Message
 import kotlinx.coroutines.flow.Flow
 
 interface LocalRepository {
 
-    suspend fun getAllChatData() : Flow<List<ChatModel>>
+    suspend fun getAllChatData(id: Int) : Flow<List<Message>>
     suspend fun  saveToChat(ChatEntity:ChatModel):Flow<String>
 
     suspend fun getAllChatListingData() : Flow<List<ChatsListingModel>>

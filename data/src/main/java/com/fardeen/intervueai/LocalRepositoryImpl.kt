@@ -4,9 +4,11 @@ import com.fardeen.intervueai.local.ChatEntity
 import com.fardeen.intervueai.local.LocalDataSource
 import com.fardeen.intervueai.mapper.toDomain
 import com.fardeen.intervueai.mapper.toEntity
+import com.fardeen.intervueai.mapper.toMessage
 import com.fardeen.intevueai.gateway.LocalRepository
 import com.fardeen.intevueai.model.ChatModel
 import com.fardeen.intevueai.model.ChatsListingModel
+import com.fardeen.intevueai.model.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -14,8 +16,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 
 class LocalRepositoryImpl(private val localDataSource: LocalDataSource) : LocalRepository {
-    override suspend fun getAllChatData(): Flow<List<ChatModel>> {
-        return flow { emit(localDataSource.getAllChatData().map { it.toDomain() })}.flowOn(   Dispatchers.IO)
+    override suspend fun getAllChatData(id: Int): Flow<List<Message>> {
+        return flow { emit(localDataSource.getAllChatData(id).map { it.toMessage() })}.flowOn(   Dispatchers.IO)
 
     }
 

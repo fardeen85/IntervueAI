@@ -4,9 +4,9 @@ class LocalDataSource(
     private val chatDao: ChatDao,
     private val chatListingDao: ChatListingDao
 ) {
-    suspend fun getAllChatData(): List<ChatEntity> {
+    suspend fun getAllChatData(id: Int): List<ChatEntity> {
         return try {
-            chatDao.getAllChatData()
+            chatDao.getAllChatDataById(id)
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList() // or rethrow depending on your policy

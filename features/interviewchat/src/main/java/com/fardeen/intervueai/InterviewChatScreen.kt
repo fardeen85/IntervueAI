@@ -1,6 +1,11 @@
 package com.fardeen.intervueai
 
+import android.util.Log
+import com.fardeen.intevueai.model.Message
 import android.widget.Toast
+import android.window.OnBackAnimationCallback
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 
 import androidx.compose.foundation.layout.Box
@@ -37,6 +42,7 @@ import kotlinx.coroutines.launch
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,6 +52,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
@@ -61,10 +68,12 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldPaneScope
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
@@ -72,9 +81,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fardeen.intervueai.interviewchat.R
 import com.fardeen.intevueai.model.ChatModel
 import com.fardeen.intevueai.model.ChatsListingModel
+import com.fardeen.intevueai.model.GeminiResponseModel
 import com.fardeen.intevueai.model.RequestState
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
@@ -82,11 +93,7 @@ import com.google.accompanist.placeholder.material.shimmer
 import kotlinx.coroutines.Job
 import org.koin.compose.viewmodel.koinViewModel
 
-data class Message(
-    val content: String,
-    val isFromAI: Boolean,
-    val senderName: String = ""
-)
+
 
 enum class WindowType {
     Compact,
@@ -108,16 +115,23 @@ sealed interface DiscussionPane {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun InterviewChatRootScreen() {
+fun InterviewChatRootScreen(onback: () -> Unit) {
 
     val navController = rememberListDetailPaneScaffoldNavigator()
+    val snackbarHoststate = SnackbarHostState()
     val scope = rememberCoroutineScope()
     val viewModel: InterviewChatViewModel = koinViewModel()
     val context = LocalContext.current
+    val state = viewModel.uiState.collectAsState()
+
+
 
     LaunchedEffect(Unit) {
-        viewModel.getLocalChatData()
+        viewModel.loadChatList()
+        viewModel.loadMessages()
+
     }
+
 
 
     LaunchedEffect(Unit) {
@@ -134,14 +148,26 @@ fun InterviewChatRootScreen() {
         }
     }
 
+
+
+
+
+
+
+
     // ✅ Main scaffold
     ListDetailPaneScaffold(
         directive = PaneScaffoldDirective.Default,
         value = navController.scaffoldValue,
 
+
         listPane = {
-            SupportingPane(viewModel = viewModel) {
+            SupportingPane(state.value.chatList,state.value.selectedChatId?:1) {
                 // When an item in the list is clicked, go to detail pane
+                Log.d("TAG","Selected ID ${it}")
+                viewModel.updateSelectedChatId(it.id)
+                viewModel.updateChatName(it.title?:"")
+                viewModel.loadMessages()
                 scope.launch {
                     navController.navigateTo(ListDetailPaneScaffoldRole.Detail)
                 }
@@ -152,14 +178,41 @@ fun InterviewChatRootScreen() {
             AnimatedPane(
                 modifier = Modifier.safeContentPadding()
             ) {
-                MainPane(viewModel = viewModel) {
-                    // Handle back navigation
-                    scope.launch {
-                        navController.navigateBack()
+                MainPane(
+                    chats = state.value.chats,
+                    geminiResponse = state.value.geminiResponse,
+                    onclick = {},
+                    onback = {
+                        if (navController.scaffoldValue[ListDetailPaneScaffoldRole.Detail] != PaneAdaptedValue.Hidden) {
+
+
+                            scope.launch {
+                                navController.navigateTo(ListDetailPaneScaffoldRole.List)
+                            }
+
+
+                        }
+                        else{
+
+                            onback()
+                        }
+                    },
+
+                    sendClick = {
+                        viewModel.sendMessage(it)
+                    },
+
+                    loadInitial = {
+                        if(it){
+                            viewModel.sendMessage("Hi i am here to practice interview questions of ${state.value.chatName}")
+                        }
+
+
                     }
-                }
+                )
             }
         }
+
     )
 }
 
@@ -167,20 +220,77 @@ fun InterviewChatRootScreen() {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun ThreePaneScaffoldPaneScope.MainPane(viewModel: InterviewChatViewModel,onclick:()-> Unit){
+fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, geminiResponse:RequestState<GeminiResponseModel?>, sendClick:(message: String)-> Unit, onclick:()-> Unit, onback:()-> Unit, loadInitial:(b:Boolean)->Unit){
 
-    val messages = remember {
-        listOf(
-            Message("For sure! Who was the artist we listened to in the taxi?", true, "Gemini"),
-            Message("Odesza! One of my faves", false),
-            Message("We've got that group playlist!", false),
-            Message("Hang tight! I'm making a shared album now for everything", true, "Gemini"),
-            Message("Oh I've got some bangers", true, "Gemini"),
-            Message("Post them up!", false),
-            Message("I got some nice shots too", true, "Gemini")
-        )
-    }
+
+    var geminiSendLoading by remember { mutableStateOf(false) }
+
     var messageText by remember { mutableStateOf("") }
+
+    var messages by remember {
+        mutableStateOf(emptyList<Message>())
+    }
+
+    val listState = rememberLazyListState()
+
+
+
+    LaunchedEffect(chats) {
+
+        when(chats){
+            is RequestState.Error -> {
+
+                val error = (chats as RequestState.Error).message
+                Log.d("TAG",error)
+            }
+            RequestState.Idl -> {
+
+            }
+            RequestState.Loading -> {
+
+            }
+            is RequestState.Success<*> -> {
+
+                messages = (chats as RequestState.Success<List<Message>>).data
+                Log.d("TAG",messages.toString())
+                loadInitial(messages.isEmpty())
+                listState.animateScrollToItem(messages.lastIndex)
+
+            }
+        }
+
+    }
+
+
+    LaunchedEffect(geminiResponse) {
+
+        when(geminiResponse){
+            is RequestState.Error -> {
+
+                geminiSendLoading = false
+            }
+            is RequestState.Idl -> {}
+            is RequestState.Loading -> {
+
+                geminiSendLoading = true
+            }
+            is RequestState.Success<*> -> {
+
+                geminiSendLoading = false
+                val data = (geminiResponse as RequestState.Success<GeminiResponseModel?>).data
+
+
+            }
+
+        }
+    }
+
+
+
+    BackHandler() {
+
+        onback()
+    }
 
     // Main chat area
     Scaffold (
@@ -195,43 +305,68 @@ fun ThreePaneScaffoldPaneScope.MainPane(viewModel: InterviewChatViewModel,onclic
             MessageInput(
                 messageText = messageText,
                 onMessageTextChange = { messageText = it },
-                onSendMessage = { messageText = "" }
+                loading = geminiSendLoading,
+                onSendMessage = {
+                    sendClick(messageText)
+                    messageText = ""
+
+                }
             )
         }
     ) { innerPadding->
 
 
         LazyColumn(
+            state  = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 24.dp)
         ) {
-            items(messages.take(3)) { message ->
-                MessageItemLarge(message = message)
-            }
 
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "NICE",
-                        fontSize = 64.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        modifier = Modifier.rotate(-12f)
-                    )
+            if (messages.isNotEmpty()){
+
+                items(messages.take(3)) { message ->
+                    MessageItemLarge(message = message)
+                }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "NICE",
+                            fontSize = 64.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            modifier = Modifier.rotate(-12f)
+                        )
+                    }
+                }
+
+                items(messages.drop(3)) { message ->
+                    MessageItemLarge(message = message)
+                }
+
+
+            }
+            else{
+
+                item {
+
+
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()){
+
+                        Text("No Messages Found")
+                    }
                 }
             }
 
-            items(messages.drop(3)) { message ->
-                MessageItemLarge(message = message)
-            }
+
         }
 
 
@@ -242,36 +377,32 @@ fun ThreePaneScaffoldPaneScope.MainPane(viewModel: InterviewChatViewModel,onclic
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun ThreePaneScaffoldPaneScope.SupportingPane(
-    viewModel: InterviewChatViewModel,
-    function: () -> Job
-){
+    chatListData: RequestState<List<ChatsListingModel>>,
+    selectedId: Int,
+    onclick: (ChatsListingModel) -> Unit,
+
+    ){
 
 
-    val chatState by viewModel.chatListData.collectAsState(initial = emptyList<ChatModel>())
-    var isLoading by rememberSaveable { mutableStateOf(true) }
-
-
-
-    when (chatState) {
+    when (chatListData) {
         is RequestState.Loading -> {
-            isLoading = true
-        }
-        is RequestState.Error -> {
-            isLoading = false
-            ErrorView((chatState as RequestState.Error).message)
-        }
-        is RequestState.Success<*> -> {
-            isLoading = false
-            val chats = (chatState as RequestState.Success<List<ChatsListingModel>>).data
-            ChatListScreen(chats, isLoading){
-
-
-            }
-        }
-        null -> {
-
             LoadingView()
         }
+        is RequestState.Error -> {
+
+            ErrorView((chatListData as RequestState.Error).message)
+        }
+        is RequestState.Success<*> -> {
+
+            val chats = (chatListData as RequestState.Success<List<ChatsListingModel>>).data
+            ChatListScreen(chats,selectedId){
+
+                onclick(it)
+            }
+        }
+
+        RequestState.Idl -> {}
+        else -> {}
     }
 
 
@@ -290,36 +421,46 @@ fun ErrorView(error: String) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoadingView() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 
-        CircularWavyProgressIndicator()
-    }
+
+       LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+           // show 5 shimmer placeholders
+           items(5) {
+               ChatListItem(chat = null, isLoading = true)
+           }
+       }
+
 }
 
 
 @Composable
 fun ChatListScreen(
     chats: List<ChatsListingModel>?,
-    isLoading: Boolean,
+    selectedId: Int,
     onChatClick: (ChatsListingModel) -> Unit
 ) {
 
+    val list = chats?:emptyList()
     Scaffold { innerPadding->
 
 
         LazyColumn(
             modifier = Modifier.padding(innerPadding)
         ) {
-            if (isLoading) {
-                // show 5 shimmer placeholders
+
+            itemsIndexed(list){ index, chat ->
+
+               val showBorder=  if(chat.id ==selectedId) true else false
+                ChatListItem(chat = chat, onClick = onChatClick, showBorder = showBorder)
+            }
+            /*    // show 5 shimmer placeholders
                 items(5) {
                     ChatListItem(chat = null, isLoading = true)
-                }
-            } else {
-                items(chats ?: emptyList()) { chat ->
-                    ChatListItem(chat = chat, onClick = onChatClick)
-                }
-            }
+                }*/
+
+
+
         }
     }
 
@@ -332,16 +473,18 @@ fun ChatListItem(
     chat: ChatsListingModel?,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
+    showBorder: Boolean=false,
     onClick: (ChatsListingModel) -> Unit = {}
 ) {
     ListItem(
         modifier = modifier
             .fillMaxWidth()
+            .border(BorderStroke(if(showBorder) 2.dp else 0.dp,if(showBorder)  Color.Blue else Color.White))
+            .clip(RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
             .clickable(enabled = !isLoading && chat != null) {
                 chat?.let { onClick(it) }
-            }
-            .clip(RoundedCornerShape(10.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            },
         headlineContent = {
             Text(
                 text = chat?.title ?: "",
@@ -390,255 +533,14 @@ fun ChatListItem(
 
 
 
-@Composable
-fun ChatItem(chat: ChatModel) {
-    val isAi = chat.messageOwner.equals("gemini")
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        horizontalArrangement = if (isAi) Arrangement.Start else Arrangement.End
-    ) {
-        if (isAi) {
-            // AI side
-            Image(
-                painter = painterResource(id = R.drawable.gemini),
-                contentDescription = "AI Avatar",
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF00BCD4))
-                    .padding(6.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .background(Color(0xFFE0F7FA), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = chat.message ?: "",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        } else {
-            // User side
-            Box(
-                modifier = Modifier
-                    .background(Color(0xFFDCF8C6), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = chat.message ?: "",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Image(
-                painter = painterResource(id = R.drawable.outline_person_4_24), // Replace with your user image
-                contentDescription = "User Avatar",
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF4CAF50))
-                    .padding(6.dp)
-            )
-        }
-    }
-}
-
-
-
-@Composable
-fun ChatList(chats: List<ChatModel>){
-    // Sidebar for large screens
-    Surface(
-        modifier = Modifier
-            .width(200.dp)
-            .fillMaxHeight(),
-        color = Color.White.copy(alpha = 0.1f)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatusBar()
-
-            Text(
-                text = "Recent Chats",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-
-            LazyColumn {
-
-                itemsIndexed(chats){ index,item->
-                    ChatItem(item)
-
-                }
-            }
-        }
-    }
-}
 @Composable
 fun MessagingScreenWithWindowSize(windowInfo: WindowInfo) {
-    InterviewChatRootScreen()
+    InterviewChatRootScreen(onback = {})
 }
 
-@Composable
-fun MessagingScreenContent() {
-    val messages = remember {
-        listOf(
-            Message("For sure! Who was the artist we listened to in the taxi?", true, "Gemini"),
-            Message("Odesza! One of my faves", false),
-            Message("We've got that group playlist!", false),
-            Message("Hang tight! I'm making a shared album now for everything", true, "Gemini"),
-            Message("Oh I've got some bangers", true, "Gemini"),
-            Message("Post them up!", false),
-            Message("I got some nice shots too", true, "Gemini")
-        )
-    }
-
-    var messageText by remember { mutableStateOf("") }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF9C4DCD),
-                        Color(0xFF7B1FA2),
-                        Color(0xFF6A1B9A)
-                    )
-                )
-            )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            StatusBar()
-            ChatHeader()
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding( 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                items(messages.take(3)) { message ->
-                    MessageItem(message = message)
-                }
-
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "NICE",
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White,
-                            modifier = Modifier.rotate(-12f)
-                        )
-                    }
-                }
-
-                items(messages.drop(3)) { message ->
-                    MessageItem(message = message)
-                }
-            }
-
-            MessageInput(
-                messageText = messageText,
-                onMessageTextChange = { messageText = it },
-                onSendMessage = { messageText = "" }
-            )
-        }
-
-        FloatingActionButton(
-            onClick = { },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = Color(0xFF6A1B9A)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.baseline_arrow_back_24),
-                contentDescription = "Play",
-                colorFilter = ColorFilter.tint(Color.White),
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun MessagingScreenContentLarge() {
-    val messages = remember {
-        listOf(
-            Message("For sure! Who was the artist we listened to in the taxi?", true, "Gemini"),
-            Message("Odesza! One of my faves", false),
-            Message("We've got that group playlist!", false),
-            Message("Hang tight! I'm making a shared album now for everything", true, "Gemini"),
-            Message("Oh I've got some bangers", true, "Gemini"),
-            Message("Post them up!", false),
-            Message("I got some nice shots too", true, "Gemini")
-        )
-    }
-
-    var messageText by remember { mutableStateOf("") }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF9C4DCD),
-                        Color(0xFF7B1FA2),
-                        Color(0xFF6A1B9A)
-                    )
-                )
-            )
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize()
-        ) {
 
 
-
-        }
-
-        FloatingActionButton(
-            onClick = { },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp),
-            containerColor = Color(0xFF6A1B9A)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.baseline_arrow_back_24),
-                contentDescription = "Play",
-                colorFilter = ColorFilter.tint(Color.White),
-                modifier = Modifier.size(28.dp)
-            )
-        }
-    }
-}
 
 @Composable
 fun StatusBar() {
@@ -781,9 +683,11 @@ fun ChatHeaderLarge(onclick: () -> Unit) {
                     painter = painterResource(R.drawable.baseline_video_camera_back_24),
                     contentDescription = "Video call",
                     colorFilter = ColorFilter.tint(Color.Black),
-                    modifier = Modifier.size(24.dp).clickable{
-                        onclick()
-                    }
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable {
+                            onclick()
+                        }
                 )
                 Image(
                     painter = painterResource(R.drawable.baseline_call_24),
@@ -840,7 +744,9 @@ fun GroupAvatarCluster(size: Dp) {
 fun MessageItem(message: Message) {
     if (message.isFromAI) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             horizontalArrangement = Arrangement.Start
         ) {
             GeminiAvatar(size = 32.dp)
@@ -985,9 +891,11 @@ fun GeminiAvatar(size: Dp) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MessageInput(
     messageText: String,
+    loading: Boolean,
     onMessageTextChange: (String) -> Unit,
     onSendMessage: () -> Unit
 ) {
@@ -1022,7 +930,7 @@ fun MessageInput(
             TextField(
                 value = messageText,
                 onValueChange = onMessageTextChange,
-                placeholder = { Text("Message...", color = Color.Gray) },
+                placeholder = { Text("write a message...", color = Color.Gray) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -1039,18 +947,25 @@ fun MessageInput(
                 modifier = Modifier.size(20.dp)
             )
 
-            IconButton(
-                onClick = onSendMessage,
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(Color(0xFF2196F3), CircleShape)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.baseline_send_24),
-                    contentDescription = "Send",
-                    colorFilter = ColorFilter.tint(Color.White),
-                    modifier = Modifier.size(16.dp)
-                )
+
+            if (loading) {
+
+                CircularWavyProgressIndicator()
+
+            } else {
+                IconButton(
+                    onClick = {onSendMessage()},
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(Color(0xFF2196F3), CircleShape)
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.baseline_send_24),
+                        contentDescription = "Send",
+                        colorFilter = ColorFilter.tint(Color.White),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }
@@ -1093,7 +1008,7 @@ fun MessageInputLarge(
             TextField(
                 value = messageText,
                 onValueChange = onMessageTextChange,
-                placeholder = { Text("Message...", color = Color.Gray, fontSize = 16.sp) },
+                placeholder = { Text("com.fardeen.intevueai.model.Message...", color = Color.Gray, fontSize = 16.sp) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
