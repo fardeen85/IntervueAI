@@ -18,6 +18,8 @@ import com.fardeen.intervueai.remote.RemoteDataSource
 import com.fardeen.intevueai.gateway.GeminiRepository
 import com.fardeen.intevueai.gateway.LocalRepository
 import com.fardeen.intevueai.usecases.CallGeminiUseCase
+import com.fardeen.intevueai.usecases.DeleteChatListingUseCase
+import com.fardeen.intevueai.usecases.DeleteChatUseCase
 import com.fardeen.intevueai.usecases.FetchChatListingDataUseCase
 import com.fardeen.intevueai.usecases.FetchLocalDataUseCase
 import com.fardeen.intevueai.usecases.SaveChatListingDataUseCase
@@ -41,9 +43,11 @@ val appmodule = module {
     factory { FetchChatListingDataUseCase(get()) }
     factory { FetchLocalDataUseCase(get()) }
     factory { SaveLocalChatUseCase(get()) }
+    factory { DeleteChatListingUseCase(get()) }
+    factory { DeleteChatUseCase(get()) }
     viewModel{SelectTopicViewModel(get(),get(),get())}
     viewModel { createChatMetaViewModel(get()) }
-    viewModel { InterviewChatViewModel(get(),get(),get(),get()) }
+    viewModel { InterviewChatViewModel(get(),get(),get(),get(),get(),get()) }
 
 
 

@@ -13,4 +13,9 @@ interface LocalRepository {
     suspend fun getAllChatListingData() : Flow<List<ChatsListingModel>>
 
     suspend fun saveToChatListing(ChatEntity:ChatsListingModel):Flow<String>
+
+    suspend fun deleteChatListing(id: Int):Flow<Int>
+
+    suspend fun deleteChat(id: Int):Flow<Int>
+
 }

@@ -82,7 +82,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun CreateChatMetaScreenRoot(onClick: () -> Unit) {
+fun CreateChatMetaScreenRoot(onClick: (id: String?) -> Unit) {
 
     val viewModel : createChatMetaViewModel = koinViewModel()
     var title = remember { mutableStateOf("") }
@@ -111,10 +111,13 @@ fun CreateChatMetaScreenRoot(onClick: () -> Unit) {
 
                     is RequestState.Success<*> -> {
                         val result = currentState.data as? String
-                        if (result.equals("success", ignoreCase = true)) {
-                            onClick()
+                        val Id = result
+                        Id?.let {
+
+                            onClick(Id)
                             viewModel.clearState()
                         }
+
                     }
 
                     is RequestState.Error -> {
@@ -163,7 +166,7 @@ fun CreateChatMetaScreenRoot(onClick: () -> Unit) {
 
 
     Scaffold(
-        topBar = { HeaderSection(onClick) },
+        topBar = { HeaderSection(){} },
         bottomBar = { BottomSection(title,description,viewModel,isLoading) },
         snackbarHost = {
 

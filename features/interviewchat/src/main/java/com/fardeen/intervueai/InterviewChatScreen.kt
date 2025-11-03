@@ -3,8 +3,6 @@ package com.fardeen.intervueai
 import android.util.Log
 import com.fardeen.intevueai.model.Message
 import android.widget.Toast
-import android.window.OnBackAnimationCallback
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,8 +37,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -68,6 +63,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
@@ -77,22 +73,18 @@ import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldPaneScope
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fardeen.intervueai.interviewchat.R
-import com.fardeen.intevueai.model.ChatModel
 import com.fardeen.intevueai.model.ChatsListingModel
 import com.fardeen.intevueai.model.GeminiResponseModel
 import com.fardeen.intevueai.model.RequestState
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.placeholder
 import com.google.accompanist.placeholder.material.shimmer
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
-
 
 
 enum class WindowType {
@@ -115,63 +107,82 @@ sealed interface DiscussionPane {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun InterviewChatRootScreen(onback: () -> Unit) {
+fun InterviewChatRootScreen(chatId: String?, onback: () -> Unit) {
 
     val navController = rememberListDetailPaneScaffoldNavigator()
-    val snackbarHoststate = SnackbarHostState()
     val scope = rememberCoroutineScope()
     val viewModel: InterviewChatViewModel = koinViewModel()
     val context = LocalContext.current
     val state = viewModel.uiState.collectAsState()
+    val snackbarHostState = SnackbarHostState()
+    val isDialogLoading by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
+    val isListVisible =
+        navController.scaffoldValue[ListDetailPaneScaffoldRole.List] != PaneAdaptedValue.Hidden
+    val isDetailVisible =
+        navController.scaffoldValue[ListDetailPaneScaffoldRole.Detail] != PaneAdaptedValue.Hidden
+    val isExpanded = isListVisible && isDetailVisible
+    val isCompact = !isExpanded
 
 
 
     LaunchedEffect(Unit) {
         viewModel.loadChatList()
+        chatId?.let {
+            val longId = it.toInt()
+            viewModel.updateSelectedChatId(longId)
+        }
         viewModel.loadMessages()
+
 
     }
 
 
 
     LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect { event ->
+        viewModel.uiEvent.collectLatest { event ->
             when (event) {
-                is UiEvent.ShowToast -> {
+                is UiEvent.Snackbar.Show -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+
+                is UiEvent.Navigation.To -> {}
+
+                UiEvent.Navigation.Back -> {}
+
+                UiEvent.Dialog.ShowLoading -> {}
+                UiEvent.Dialog.HideLoading -> {}
+                UiEvent.Dialog.ShowSuccess -> showDialog = true
+                UiEvent.Dialog.Hide -> showDialog = false
+
+                is UiEvent.Toast -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                 }
-                is UiEvent.Navigate -> {
-                    // navController.navigate(event.route) // Optional
-                }
-                UiEvent.ShowSuccessDialog -> { /* show dialog */ }
             }
         }
     }
 
 
-
-
-
-
-
-
-    // ✅ Main scaffold
+    // Main scaffold
     ListDetailPaneScaffold(
         directive = PaneScaffoldDirective.Default,
         value = navController.scaffoldValue,
 
 
         listPane = {
-            SupportingPane(state.value.chatList,state.value.selectedChatId?:1) {
-                // When an item in the list is clicked, go to detail pane
-                Log.d("TAG","Selected ID ${it}")
+            SupportingPane(state.value.chatList, state.value.selectedChatId ?: 1, isExpanded, onLongClick = {
+
+                viewModel.sendShowDialogEvent()
+            }, onclick = {
+
+                Log.d("TAG", "Selected ID ${it}")
                 viewModel.updateSelectedChatId(it.id)
-                viewModel.updateChatName(it.title?:"")
+                viewModel.updateChatName(it.title ?: "")
                 viewModel.loadMessages()
                 scope.launch {
                     navController.navigateTo(ListDetailPaneScaffoldRole.Detail)
                 }
-            }
+            })
         },
 
         detailPane = {
@@ -181,6 +192,7 @@ fun InterviewChatRootScreen(onback: () -> Unit) {
                 MainPane(
                     chats = state.value.chats,
                     geminiResponse = state.value.geminiResponse,
+                    title = state.value.chatName ?: "",
                     onclick = {},
                     onback = {
                         if (navController.scaffoldValue[ListDetailPaneScaffoldRole.Detail] != PaneAdaptedValue.Hidden) {
@@ -191,9 +203,7 @@ fun InterviewChatRootScreen(onback: () -> Unit) {
                             }
 
 
-                        }
-                        else{
-
+                        } else {
                             onback()
                         }
                     },
@@ -203,7 +213,7 @@ fun InterviewChatRootScreen(onback: () -> Unit) {
                     },
 
                     loadInitial = {
-                        if(it){
+                        if (it) {
                             viewModel.sendMessage("Hi i am here to practice interview questions of ${state.value.chatName}")
                         }
 
@@ -214,13 +224,29 @@ fun InterviewChatRootScreen(onback: () -> Unit) {
         }
 
     )
-}
 
+    DeleteConfirmationDialog(showDialog = showDialog, onConfirmDelete = {
+        showDialog = false
+        viewModel.deleteChatListItem()
+    }, onDismiss = {
+        showDialog = false
+    })
+
+
+}
 
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, geminiResponse:RequestState<GeminiResponseModel?>, sendClick:(message: String)-> Unit, onclick:()-> Unit, onback:()-> Unit, loadInitial:(b:Boolean)->Unit){
+fun ThreePaneScaffoldPaneScope.MainPane(
+    title: String,
+    chats: RequestState<List<Message>>,
+    geminiResponse: RequestState<GeminiResponseModel?>,
+    sendClick: (message: String) -> Unit,
+    onclick: () -> Unit,
+    onback: () -> Unit,
+    loadInitial: (b: Boolean) -> Unit
+) {
 
 
     var geminiSendLoading by remember { mutableStateOf(false) }
@@ -237,25 +263,30 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
 
     LaunchedEffect(chats) {
 
-        when(chats){
+        when (chats) {
             is RequestState.Error -> {
 
                 val error = (chats as RequestState.Error).message
-                Log.d("TAG",error)
+                Log.d("TAG", error)
             }
+
             RequestState.Idl -> {
 
             }
+
             RequestState.Loading -> {
 
             }
+
             is RequestState.Success<*> -> {
 
                 messages = (chats as RequestState.Success<List<Message>>).data
-                Log.d("TAG",messages.toString())
+                Log.d("TAG", messages.toString())
                 loadInitial(messages.isEmpty())
-                listState.animateScrollToItem(messages.lastIndex)
-
+                // Scroll to the last item only if the list is not empty
+                if (messages.isNotEmpty()) {
+                    listState.animateScrollToItem(messages.lastIndex)
+                }
             }
         }
 
@@ -264,16 +295,18 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
 
     LaunchedEffect(geminiResponse) {
 
-        when(geminiResponse){
+        when (geminiResponse) {
             is RequestState.Error -> {
 
                 geminiSendLoading = false
             }
+
             is RequestState.Idl -> {}
             is RequestState.Loading -> {
 
                 geminiSendLoading = true
             }
+
             is RequestState.Success<*> -> {
 
                 geminiSendLoading = false
@@ -293,10 +326,10 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
     }
 
     // Main chat area
-    Scaffold (
+    Scaffold(
 
         topBar = {
-            ChatHeaderLarge(){
+            chatHeader(title) {
                 onclick()
             }
         },
@@ -313,11 +346,11 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
                 }
             )
         }
-    ) { innerPadding->
+    ) { innerPadding ->
 
 
         LazyColumn(
-            state  = listState,
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -325,10 +358,10 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
             contentPadding = PaddingValues(vertical = 24.dp)
         ) {
 
-            if (messages.isNotEmpty()){
+            if (messages.isNotEmpty()) {
 
                 items(messages.take(3)) { message ->
-                    MessageItemLarge(message = message)
+                    MessageItem(message = message)
                 }
 
                 item {
@@ -349,17 +382,16 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
                 }
 
                 items(messages.drop(3)) { message ->
-                    MessageItemLarge(message = message)
+                    MessageItem(message = message)
                 }
 
 
-            }
-            else{
+            } else {
 
                 item {
 
 
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()){
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
 
                         Text("No Messages Found")
                     }
@@ -379,32 +411,32 @@ fun ThreePaneScaffoldPaneScope.MainPane(chats:RequestState<List<Message>>, gemin
 fun ThreePaneScaffoldPaneScope.SupportingPane(
     chatListData: RequestState<List<ChatsListingModel>>,
     selectedId: Int,
+    isExpanded: Boolean,
     onclick: (ChatsListingModel) -> Unit,
+    onLongClick: (ChatsListingModel) -> Unit
 
-    ){
+    ) {
 
 
     when (chatListData) {
         is RequestState.Loading -> {
             LoadingView()
         }
+
         is RequestState.Error -> {
 
             ErrorView((chatListData as RequestState.Error).message)
         }
+
         is RequestState.Success<*> -> {
 
             val chats = (chatListData as RequestState.Success<List<ChatsListingModel>>).data
-            ChatListScreen(chats,selectedId){
-
-                onclick(it)
-            }
+            ChatListScreen(chats, selectedId, isExpanded, onChatClick ={ it->onclick(it)}, onLongClick = {it->onLongClick(it)})
         }
 
         RequestState.Idl -> {}
         else -> {}
     }
-
 
 
 }
@@ -414,7 +446,7 @@ fun ErrorView(error: String) {
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 
-        Text("Oops!"+error)
+        Text("Oops!" + error)
     }
 }
 
@@ -423,13 +455,13 @@ fun ErrorView(error: String) {
 fun LoadingView() {
 
 
-       LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-           // show 5 shimmer placeholders
-           items(5) {
-               ChatListItem(chat = null, isLoading = true)
-           }
-       }
+        // show 5 shimmer placeholders
+        items(5) {
+            ChatListItem(chat = null, isLoading = true)
+        }
+    }
 
 }
 
@@ -438,27 +470,28 @@ fun LoadingView() {
 fun ChatListScreen(
     chats: List<ChatsListingModel>?,
     selectedId: Int,
-    onChatClick: (ChatsListingModel) -> Unit
+    isExpanded: Boolean,
+    onChatClick: (ChatsListingModel) -> Unit,
+    onLongClick: (ChatsListingModel) -> Unit
 ) {
 
-    val list = chats?:emptyList()
-    Scaffold { innerPadding->
+    val list = chats ?: emptyList()
+    Scaffold { innerPadding ->
 
 
         LazyColumn(
             modifier = Modifier.padding(innerPadding)
         ) {
 
-            itemsIndexed(list){ index, chat ->
+            itemsIndexed(list) { index, chat ->
 
-               val showBorder=  if(chat.id ==selectedId) true else false
-                ChatListItem(chat = chat, onClick = onChatClick, showBorder = showBorder)
+                val showBorder = if (chat.id == selectedId && isExpanded) true else false
+                ChatListItem(chat = chat, onClick = onChatClick, showBorder = showBorder, onLongClick = onLongClick)
             }
             /*    // show 5 shimmer placeholders
                 items(5) {
                     ChatListItem(chat = null, isLoading = true)
                 }*/
-
 
 
         }
@@ -473,18 +506,26 @@ fun ChatListItem(
     chat: ChatsListingModel?,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
-    showBorder: Boolean=false,
-    onClick: (ChatsListingModel) -> Unit = {}
+    showBorder: Boolean = false,
+    onClick: (ChatsListingModel) -> Unit = {},
+    onLongClick: (ChatsListingModel) -> Unit = {},
 ) {
     ListItem(
         modifier = modifier
             .fillMaxWidth()
-            .border(BorderStroke(if(showBorder) 2.dp else 0.dp,if(showBorder)  Color.Blue else Color.White))
+            .border(
+                BorderStroke(
+                    if (showBorder) 2.dp else 0.dp,
+                    if (showBorder) Color.Blue else Color.White
+                )
+            )
             .clip(RoundedCornerShape(10.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clickable(enabled = !isLoading && chat != null) {
-                chat?.let { onClick(it) }
-            },
+            .combinedClickable(
+                enabled = !isLoading && chat != null,
+                onClick = { chat?.let { onClick(it) } },
+                onLongClick = { chat?.let { onLongClick(it) } }
+            ),
         headlineContent = {
             Text(
                 text = chat?.title ?: "",
@@ -522,8 +563,12 @@ fun ChatListItem(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         highlight = PlaceholderHighlight.shimmer()
                     )
-            ){
-                Image(modifier= Modifier.fillMaxSize(), painter = painterResource(R.drawable.gemini), contentDescription = "")
+            ) {
+                Image(
+                    modifier = Modifier.fillMaxSize(),
+                    painter = painterResource(R.drawable.gemini),
+                    contentDescription = ""
+                )
             }
         },
 
@@ -532,14 +577,10 @@ fun ChatListItem(
 }
 
 
-
-
 @Composable
 fun MessagingScreenWithWindowSize(windowInfo: WindowInfo) {
-    InterviewChatRootScreen(onback = {})
+    InterviewChatRootScreen("", onback = {})
 }
-
-
 
 
 @Composable
@@ -649,7 +690,7 @@ fun ChatHeader() {
 }
 
 @Composable
-fun ChatHeaderLarge(onclick: () -> Unit) {
+fun chatHeader(title: String, onclick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.White.copy(alpha = 0.1f)
@@ -657,7 +698,7 @@ fun ChatHeaderLarge(onclick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             GroupAvatarCluster(size = 48.dp)
@@ -666,42 +707,13 @@ fun ChatHeaderLarge(onclick: () -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Music night out ✨",
+                    text = title,
                     color = Color.Black,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = "4 participants",
-                    color = Color.Black.copy(alpha = 0.7f),
-                    fontSize = 12.sp
-                )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Image(
-                    painter = painterResource(R.drawable.baseline_video_camera_back_24),
-                    contentDescription = "Video call",
-                    colorFilter = ColorFilter.tint(Color.Black),
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable {
-                            onclick()
-                        }
-                )
-                Image(
-                    painter = painterResource(R.drawable.baseline_call_24),
-                    contentDescription = "Voice call",
-                    colorFilter = ColorFilter.tint(Color.Black),
-                    modifier = Modifier.size(24.dp)
-                )
-                Image(
-                    painter = painterResource(R.drawable.baseline_more_vert_24),
-                    contentDescription = "More options",
-                    colorFilter = ColorFilter.tint(Color.Black),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
         }
     }
 }
@@ -740,73 +752,9 @@ fun GroupAvatarCluster(size: Dp) {
     }
 }
 
+
 @Composable
 fun MessageItem(message: Message) {
-    if (message.isFromAI) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            GeminiAvatar(size = 32.dp)
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column {
-                Text(
-                    text = message.senderName,
-                    fontSize = 10.sp,
-                    color = Color.Black.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp,
-                        topEnd = 16.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    ),
-                    modifier = Modifier.widthIn(max = 280.dp)
-                ) {
-                    Text(
-                        text = message.content,
-                        fontSize = 14.sp,
-                        color = Color.Black.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            }
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Surface(
-                color = Color(0xFF2196F3),
-                shape = RoundedCornerShape(
-                    topStart = 16.dp,
-                    topEnd = 4.dp,
-                    bottomStart = 16.dp,
-                    bottomEnd = 16.dp
-                ),
-                modifier = Modifier.widthIn(max = 280.dp)
-            ) {
-                Text(
-                    text = message.content,
-                    fontSize = 14.sp,
-                    color = Color.White,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun MessageItemLarge(message: Message) {
     if (message.isFromAI) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -913,19 +861,7 @@ fun MessageInput(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Image(
-                painter = painterResource(R.drawable.baseline_attach_file_24),
-                contentDescription = "Attach file",
-                colorFilter = ColorFilter.tint(Color(0xFF2196F3)),
-                modifier = Modifier.size(24.dp)
-            )
 
-            Image(
-                painter = painterResource(R.drawable.baseline_image_24),
-                contentDescription = "Image",
-                colorFilter = ColorFilter.tint(Color.Gray),
-                modifier = Modifier.size(24.dp)
-            )
 
             TextField(
                 value = messageText,
@@ -940,12 +876,7 @@ fun MessageInput(
                 modifier = Modifier.weight(1f)
             )
 
-            Image(
-                painter = painterResource(R.drawable.baseline_mic_24),
-                contentDescription = "Microphone",
-                colorFilter = ColorFilter.tint(Color.Gray),
-                modifier = Modifier.size(20.dp)
-            )
+
 
 
             if (loading) {
@@ -954,7 +885,7 @@ fun MessageInput(
 
             } else {
                 IconButton(
-                    onClick = {onSendMessage()},
+                    onClick = { onSendMessage() },
                     modifier = Modifier
                         .size(32.dp)
                         .background(Color(0xFF2196F3), CircleShape)
@@ -1008,7 +939,13 @@ fun MessageInputLarge(
             TextField(
                 value = messageText,
                 onValueChange = onMessageTextChange,
-                placeholder = { Text("com.fardeen.intevueai.model.Message...", color = Color.Gray, fontSize = 16.sp) },
+                placeholder = {
+                    Text(
+                        "com.fardeen.intevueai.model.Message...",
+                        color = Color.Gray,
+                        fontSize = 16.sp
+                    )
+                },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -1116,6 +1053,35 @@ fun MessagingScreenFoldablePreview() {
     MaterialTheme {
         MessagingScreenWithWindowSize(
             WindowInfo(screenWidthInfo = WindowType.Expanded)
+        )
+    }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    showDialog: Boolean,
+    onConfirmDelete: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(text = "Delete Chat?")
+            },
+            text = {
+                Text("Are you sure you want to delete this chat? This action cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(onClick = onConfirmDelete) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }

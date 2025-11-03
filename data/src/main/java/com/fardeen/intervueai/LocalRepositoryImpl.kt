@@ -37,5 +37,14 @@ class LocalRepositoryImpl(private val localDataSource: LocalDataSource) : LocalR
 
     }
 
+    override suspend fun deleteChatListing(id: Int): Flow<Int> {
+        return flow { emit(localDataSource.deleteChatListingData(id)) }.flowOn(Dispatchers.IO)
+    }
+
+    override suspend fun deleteChat(id: Int): Flow<Int> {
+
+        return flow { emit(localDataSource.deleteChatData(id)) }.flowOn(Dispatchers.IO)
+    }
+
 
 }

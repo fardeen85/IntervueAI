@@ -37,11 +37,35 @@ class LocalDataSource(
 
     suspend fun saveChatListingData(chats: ChatListingEntity): String {
         try {
-            chatListingDao.saveChatListingData(chats)
-            return "success"
+            val rowId = chatListingDao.saveChatListingData(chats)
+            return rowId.toString()?:"1"
         } catch (e: Exception) {
             e.printStackTrace()
             return e.message?.toString()?:""
+        }
+    }
+
+
+    suspend fun deleteChatListingData(id: Int): Int {
+        try {
+            val rowsDeleted =  chatListingDao.deleteChatListingData(id)
+            return  rowsDeleted
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return 0
+
+        }
+    }
+
+
+    suspend fun deleteChatData(id: Int): Int{
+
+        try {
+          val rowsDeleted = chatDao.deleteChatData(id)
+            return rowsDeleted
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return 0
         }
     }
 

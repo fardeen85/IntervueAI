@@ -10,6 +10,8 @@ import com.fardeen.intevueai.model.ChatsListingModel
 import com.fardeen.intevueai.model.GeminiResponseModel
 import com.fardeen.intevueai.model.RequestState
 import com.fardeen.intevueai.usecases.CallGeminiUseCase
+import com.fardeen.intevueai.usecases.DeleteChatListingUseCase
+import com.fardeen.intevueai.usecases.DeleteChatUseCase
 import com.fardeen.intevueai.usecases.FetchChatListingDataUseCase
 import com.fardeen.intevueai.usecases.FetchLocalDataUseCase
 import com.fardeen.intevueai.usecases.SaveLocalChatUseCase
@@ -29,7 +31,9 @@ class InterviewChatViewModel(
     private val fetchChatMessages: FetchLocalDataUseCase,
     private val saveChatUseCase: SaveLocalChatUseCase,
     private val fetchChatList: FetchChatListingDataUseCase,
-    private val callGemini: CallGeminiUseCase
+    private val callGemini: CallGeminiUseCase,
+    private val deleteChatLising: DeleteChatListingUseCase,
+    private val deleteChat: DeleteChatUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InterviewChatUiState())
@@ -53,7 +57,7 @@ class InterviewChatViewModel(
                             errorMessage = e.message
                         )
                     }
-                    _uiEvent.send(UiEvent.ShowToast("Failed to load chat list"))
+                    _uiEvent.send(UiEvent.Toast("Failed to load chat list"))
                 }
                 .collect { chats ->
                     _uiState.update {
@@ -62,7 +66,7 @@ class InterviewChatViewModel(
                             isLoading = false
                         )
                     }
-                    _uiEvent.send(UiEvent.ShowToast("Chats loaded"))
+                    _uiEvent.send(UiEvent.Toast("Chats loaded"))
                 }
         }
     }
@@ -150,15 +154,79 @@ class InterviewChatViewModel(
             .onStart { _uiState.update { it.copy(saveStatus = RequestState.Loading) } }
             .catch { e ->
                 _uiState.update { it.copy(saveStatus = RequestState.Error(e.message ?: "Failed to save chat")) }
-                _uiEvent.send(UiEvent.ShowToast("Failed to save chat"))
+                _uiEvent.send(UiEvent.Toast("Failed to save chat"))
             }
             .collect { result ->
                 _uiState.update { it.copy(saveStatus = RequestState.Success(result)) }
             }
     }
 
+
+    fun sendShowDialogEvent(){
+
+        viewModelScope.launch {
+            _uiEvent.send(UiEvent.Dialog.ShowSuccess)
+        }
+
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+
+    fun deleteChat(){
+
+        viewModelScope.launch {
+
+            uiState.value.selectedChatId?.let {
+
+                deleteChat(it)
+                    .onStart {}
+                    .catch { e ->
+
+                        _uiEvent.send(UiEvent.Toast("Failed to delete chat"))
+                    }
+                    .collect {
+
+                        _uiEvent.send(UiEvent.Toast("Chat deleted"))
+
+                    }
+
+            }
+
+
+
+        }
+    }
+    fun deleteChatListItem(){
+
+        viewModelScope.launch {
+
+            uiState.value.selectedChatId?.let {
+
+                deleteChatLising(it)
+                    .onStart {
+                        _uiEvent.send(UiEvent.Dialog.ShowLoading)
+                    }
+                    .catch { e ->
+
+                        _uiEvent.send(UiEvent.Toast("Failed to delete chat"))
+                    }
+                    .collect {
+
+                        _uiEvent.send(UiEvent.Toast("Chat deleted"))
+                        _uiEvent.send(UiEvent.Dialog.HideLoading)
+                        deleteChat()
+                        loadChatList()
+
+                    }
+
+            }
+
+
+
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 package com.fardeen.intervueai.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,6 +37,7 @@ fun mainNavigation() {
     val backstack = rememberNavBackStack (Home)
     val motionScheme = MaterialTheme.motionScheme
 
+
     NavDisplay(
         backStack = backstack,
         onBack = { backstack.removeLastOrNull() },
@@ -70,20 +72,21 @@ fun mainNavigation() {
             entry<SelectTopic> { entry ->
                 SelectTopicScreenRoot(
                     onClick = {  backstack.add(createChatMeta)},
-                    onClick1 = {  backstack.add(chatScreen)}
+                    onClick1 = {  backstack.add(chatScreen(chatId = null))}
                 )
             }
 
             entry<createChatMeta>{entry->
                 CreateChatMetaScreenRoot(){
-                    backstack.add(chatScreen)
+                    backstack.add(chatScreen(it))
                 }
             }
 
             entry<chatScreen>{entry->
-                InterviewChatRootScreen(){
+                val chatId = entry.chatId
+                InterviewChatRootScreen(chatId){
 
-                    backstack.removeFirst()
+                    backstack.removeAt(0)
                 }
             }
 
@@ -92,6 +95,11 @@ fun mainNavigation() {
 
 
     )
+
+    BackHandler() {
+
+
+    }
 
 
 }

@@ -14,4 +14,4 @@ object SelectTopic:NavKey
 object createChatMeta:NavKey
 
 @Serializable
-object chatScreen : NavKey
+data class chatScreen(val chatId: String? = null) : NavKey

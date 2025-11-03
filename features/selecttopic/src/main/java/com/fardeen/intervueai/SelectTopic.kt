@@ -141,7 +141,7 @@ fun SelectTopicScreenRoot(
             is RequestState.Success -> {
                 if (gemini.data != null) {
 
-                    val reply: String = gemini?.data?.candidates?.get(0)?.content?.parts?.get(0)?.text?:""
+                    val reply: String = gemini.data?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: ""
                     if(reply.contains("Y")) {
                         onClick()
                     }
