@@ -27,7 +27,7 @@ class RemoteDataSource {
 
         return try {
 
-            KtorClient.client.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent") {
+            KtorClient.client.post("Gemini URL") {
                 url {
                     parameters.append("key", "your key")
                 }
